@@ -174,6 +174,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+import { Modal } from "bootstrap";
 import { useAuthStore } from "../stores/auth";
 
 const authStore = useAuthStore();
