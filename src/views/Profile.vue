@@ -23,7 +23,7 @@
           />
         </div>
         <div class="col-md-9">
-          <h4 class="mb-3 capitalize">{{ profileData.name }}</h4>
+          <h4 class="mb-3 text-capitalize">{{ profileData.name }}</h4>
           <div class="row">
             <div class="col-md-6">
               <p class="mb-2">
@@ -36,17 +36,17 @@
                 >{{ profileData.phone_number }}
               </p>
               <p class="mb-0">
-                <i class="bi bi-geo-alt me-2 capitalize"></i
-                >{{ formattedAddress }}
+                <i class="bi bi-geo-alt me-2 text-capitalize"></i
+                >{{ profileData.address }}
               </p>
             </div>
             <div class="col-md-6">
-              <span class="badge bg-info capitalize">{{
+              <span class="badge bg-info text-capitalize">{{
                 profileData.gender
               }}</span>
               <div class="mt-3">
                 <h6>About Me:</h6>
-                <p class="bio-text text-muted capitalize">
+                <p class="bio-text text-muted text-lowercase">
                   {{ profileData.bio }}
                 </p>
               </div>
@@ -186,14 +186,6 @@ const saving = ref(false);
 const errorMessage = ref("");
 let profileModal = null;
 
-const formattedAddress = computed(() =>
-  profileData.value?.address
-    ? profileData.value.address
-        .toLowerCase()
-        .replace(/\b\w/g, (char) => char.toUpperCase())
-    : ""
-);
-
 const fetchProfile = async () => {
   try {
     const response = await axios.get("api/user/profile", {
@@ -292,9 +284,5 @@ body {
 .nav-link.active {
   color: #6366f1 !important;
   border-bottom: 2px solid #6366f1;
-}
-
-.capitalize {
-  text-transform: capitalize;
 }
 </style>
