@@ -205,6 +205,7 @@ const fetchProfile = async () => {
     if (response.data.status === "success") {
       profileData.value = response.data.data;
       editForm.value = { ...response.data.data };
+      localStorage.setItem("profileData", JSON.stringify(response.data.data));
     }
   } catch (error) {
     errorMessage.value = "Failed to load profile data";
@@ -234,6 +235,7 @@ const handleSave = async () => {
 
     if (response.data.status === "success") {
       profileData.value = response.data.data;
+      localStorage.setItem("profileData", JSON.stringify(response.data.data));
       await authStore.fetchName();
       if (profileModal) profileModal.hide();
     }
@@ -249,7 +251,14 @@ onMounted(() => {
   if (!authStore.authToken) {
     router.push("/login");
   } else {
-    fetchProfile();
+    const storedProfileData = localStorage.getItem("profileData");
+    if (storedProfileData) {
+      profileData.value = JSON.parse(storedProfileData);
+      editForm.value = { ...profileData.value };
+      loading.value = false;
+    } else {
+      fetchProfile();
+    }
   }
 });
 </script>
