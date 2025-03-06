@@ -234,6 +234,7 @@ const handleSave = async () => {
 
     if (response.data.status === "success") {
       profileData.value = response.data.data;
+      await authStore.fetchName();
       if (profileModal) profileModal.hide();
     }
   } catch (error) {
