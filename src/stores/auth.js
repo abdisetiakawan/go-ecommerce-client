@@ -6,7 +6,7 @@ import authService from "../services/auth.js";
 export const useAuthStore = defineStore("auth", () => {
   const userRole = ref(localStorage.getItem("userRole") || null);
   const authToken = ref(localStorage.getItem("authToken") || null);
-  const userName = ref(null);
+  const userName = ref(localStorage.getItem("userName") || null);
 
   async function login(credentials) {
     const result = await authService.login(credentials);
@@ -41,6 +41,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (response.data.status === "success") {
         userName.value = response.data.data.name;
+        localStorage.setItem("userName", response.data.data.name);
         return userName.value;
       }
     } catch (error) {

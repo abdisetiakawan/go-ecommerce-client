@@ -5,10 +5,10 @@
         <img src="../assets/golang.png" width="40" alt="logo" />
       </RouterLink>
       <div class="d-flex align-items-center">
-        <RouterLink to="/products" class="btn btn-link text-dark"
+        <RouterLink to="/buyer/products" class="btn btn-link text-dark"
           >Products</RouterLink
         >
-        <RouterLink to="/orders" class="btn btn-link text-dark"
+        <RouterLink to="/buyer/orders" class="btn btn-link text-dark"
           >Orders</RouterLink
         >
         <div class="dropdown">
@@ -38,7 +38,6 @@
 <script setup>
 import { RouterLink, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
-import { onMounted } from "vue";
 const authStore = useAuthStore();
 const router = useRouter();
 
@@ -46,14 +45,6 @@ const handleLogout = () => {
   authStore.logout();
   router.push("/login");
 };
-
-onMounted(() => {
-  if (!authStore.authToken) {
-    router.push("/login");
-  } else {
-    authStore.fetchName();
-  }
-});
 </script>
 
 <style scoped>
