@@ -126,13 +126,13 @@ const recommendedProducts = ref([
     id: 1,
     name: "Wireless Speaker",
     price: "Rp299.000",
-    image: "https://via.placeholder.com/200",
+    image: "https://placehold.co/100",
   },
   {
     id: 2,
     name: "Mechanical Keyboard",
     price: "Rp599.000",
-    image: "https://via.placeholder.com/200",
+    image: "https://placehold.co/100",
   },
 ]);
 
