@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import Checkout from "../views/Checkout.vue";
+import OrderDetail from "../views/OrderDetail.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -36,6 +38,21 @@ const router = createRouter({
       name: "BuyerProducts",
       component: () => import("../views/buyer/Products.vue"),
       meta: { requiresAuth: true, role: "buyer" },
+    },
+    {
+      path: "/checkout",
+      name: "Checkout",
+      component: Checkout,
+      props: (route) => ({
+        cartItems: JSON.parse(route.query.cartItems),
+        cartTotal: Number(route.query.cartTotal),
+      }),
+    },
+    {
+      path: "/orders/:orderUuid",
+      name: "OrderDetail",
+      component: OrderDetail,
+      props: true,
     },
     {
       path: "/profile",
