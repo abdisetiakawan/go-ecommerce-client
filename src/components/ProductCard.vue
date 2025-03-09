@@ -1,5 +1,5 @@
 <template>
-  <div class="col">
+  <div class="col mb-4">
     <div class="card product-card h-100">
       <img
         :src="product.image || 'https://placehold.co/100'"
