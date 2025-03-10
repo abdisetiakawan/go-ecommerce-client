@@ -21,7 +21,7 @@
   <div v-else class="container-lg py-4 animate__animated animate__fadeIn">
     <!-- Header Section -->
     <div class="mb-4">
-      <RouterLink to="/orders" class="btn btn-link text-decoration-none">
+      <RouterLink to="/buyer/orders " class="btn btn-link text-decoration-none">
         <i class="bi bi-arrow-left me-2"></i>Kembali ke Pesanan
       </RouterLink>
       <div class="d-flex justify-content-between align-items-center mt-2">

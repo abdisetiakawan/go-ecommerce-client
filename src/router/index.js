@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import Checkout from "../views/Checkout.vue";
 import OrderDetail from "../views/OrderDetail.vue";
+import BuyerOrders from "../views/buyer/BuyerOrders.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -37,6 +38,12 @@ const router = createRouter({
       path: "/buyer/products",
       name: "BuyerProducts",
       component: () => import("../views/buyer/Products.vue"),
+      meta: { requiresAuth: true, role: "buyer" },
+    },
+    {
+      path: "/buyer/orders",
+      name: "BuyerOrders",
+      component: BuyerOrders,
       meta: { requiresAuth: true, role: "buyer" },
     },
     {
