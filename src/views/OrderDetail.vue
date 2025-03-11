@@ -220,17 +220,26 @@ const fetchOrder = async () => {
 
 const cancelOrder = async () => {
   try {
-    await axios.delete(
-      `http://localhost:3000/api/buyer/orders/${route.params.orderUuid}`,
+    const response = await axios.patch(
+      `http://localhost:3000/api/buyer/orders/${route.params.orderUuid}/cancel`,
+      {},
       {
         headers: {
           Authorization: `Bearer ${authStore.authToken}`,
         },
       }
     );
-    await fetchOrder();
-    showCancelModal.value = false;
-    alert("Pesanan berhasil dibatalkan");
+
+    if (response.data.status === "success") {
+      orderData.value = {
+        ...response.data.data,
+        payment: response.data.data.payment || {},
+        shipping: response.data.data.shipping || {},
+        items: response.data.data.items || [],
+      };
+      showCancelModal.value = false;
+      alert("Pesanan berhasil dibatalkan");
+    }
   } catch (error) {
     console.error("Error cancelling order:", error);
     alert(
