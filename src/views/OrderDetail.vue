@@ -26,13 +26,30 @@
       </RouterLink>
       <div class="d-flex justify-content-between align-items-center mt-2">
         <h1 class="h3 mb-0">Order #{{ orderData.order_uuid }}</h1>
-        <button
-          v-if="orderData.status === 'pending'"
-          class="btn btn-outline-danger"
-          @click="showCancelModal = true"
-        >
-          Batalkan Pesanan
-        </button>
+        <div>
+          <button
+            v-if="orderData.status === 'pending'"
+            class="btn btn-outline-danger me-2"
+            @click="showCancelModal = true"
+          >
+            Batalkan Pesanan
+          </button>
+          <button
+            v-if="orderData.status === 'pending'"
+            class="btn btn-outline-success"
+            @click="checkoutOrder"
+            :disabled="processingCheckout"
+          >
+            <span v-if="!processingCheckout">Checkout Now</span>
+            <span v-else>
+              <span
+                class="spinner-border spinner-border-sm"
+                role="status"
+              ></span>
+              Processing...
+            </span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -150,6 +167,7 @@ const orderData = ref({
 });
 const loading = ref(true);
 const showCancelModal = ref(false);
+const processingCheckout = ref(false);
 
 const formattedStatus = computed(() => {
   return orderData.value.status?.toUpperCase() || "BELUM DIKETAHUI";
@@ -157,6 +175,7 @@ const formattedStatus = computed(() => {
 
 const statusBadgeClass = computed(() => ({
   "status-badge": true,
+  "bg-primary": orderData.value.status === "processed",
   "bg-warning": orderData.value.status === "pending",
   "bg-success": orderData.value.status === "completed",
   "bg-danger": orderData.value.status === "cancelled",
@@ -245,6 +264,38 @@ const cancelOrder = async () => {
     alert(
       `Gagal membatalkan pesanan: ${error.response?.data?.message || error.message}`
     );
+  }
+};
+
+const checkoutOrder = async () => {
+  try {
+    processingCheckout.value = true;
+    const response = await axios.patch(
+      `http://localhost:3000/api/buyer/orders/${route.params.orderUuid}/checkout`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${authStore.authToken}`,
+        },
+      }
+    );
+
+    if (response.data.status === "success") {
+      orderData.value = {
+        ...response.data.data,
+        payment: response.data.data.payment || {},
+        shipping: response.data.data.shipping || {},
+        items: response.data.data.items || [],
+      };
+      alert("Checkout berhasil");
+    }
+  } catch (error) {
+    console.error("Error during checkout:", error);
+    alert(
+      `Gagal melakukan checkout: ${error.response?.data?.message || error.message}`
+    );
+  } finally {
+    processingCheckout.value = false;
   }
 };
 

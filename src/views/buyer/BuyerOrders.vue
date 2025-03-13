@@ -12,7 +12,7 @@
             <option value="">All Status</option>
             <option value="cancelled">Cancelled</option>
             <option value="pending">Pending</option>
-            <option value="processing">Processing</option>
+            <option value="processed">Processed</option>
             <option value="delivered">Delivered</option>
           </select>
         </div>
@@ -226,10 +226,11 @@ watch(
 );
 
 const statusBadgeClass = (status) => {
+  console.log(status);
   return {
     "bg-danger": status === "cancelled",
     "bg-warning text-dark": status === "pending",
-    "bg-primary": status === "processing",
+    "bg-primary": status === "processed",
     "bg-success": status === "delivered",
   };
 };
