@@ -226,7 +226,6 @@ watch(
 );
 
 const statusBadgeClass = (status) => {
-  console.log(status);
   return {
     "bg-danger": status === "cancelled",
     "bg-warning text-dark": status === "pending",

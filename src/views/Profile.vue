@@ -90,6 +90,9 @@
                   required
                 />
                 <label for="name">Full Name</label>
+                <div v-if="validationErrors.name" class="text-danger">
+                  {{ validationErrors.name }}
+                </div>
               </div>
 
               <div class="form-floating mb-3">
@@ -101,6 +104,9 @@
                   required
                 />
                 <label for="phone">Phone Number</label>
+                <div v-if="validationErrors.phone_number" class="text-danger">
+                  {{ validationErrors.phone_number }}
+                </div>
               </div>
 
               <div class="form-floating mb-3">
@@ -112,6 +118,9 @@
                   required
                 ></textarea>
                 <label for="address">Address</label>
+                <div v-if="validationErrors.address" class="text-danger">
+                  {{ validationErrors.address }}
+                </div>
               </div>
 
               <div class="form-floating mb-3">
@@ -124,6 +133,9 @@
                   <option value="female">Female</option>
                 </select>
                 <label for="gender">Gender</label>
+                <div v-if="validationErrors.gender" class="text-danger">
+                  {{ validationErrors.gender }}
+                </div>
               </div>
 
               <div class="form-floating mb-3">
@@ -134,6 +146,9 @@
                   v-model="editForm.avatar"
                 />
                 <label for="avatar">Avatar URL</label>
+                <div v-if="validationErrors.avatar" class="text-danger">
+                  {{ validationErrors.avatar }}
+                </div>
               </div>
 
               <div class="form-floating mb-3">
@@ -144,6 +159,9 @@
                   v-model="editForm.bio"
                 ></textarea>
                 <label for="bio">Bio</label>
+                <div v-if="validationErrors.bio" class="text-danger">
+                  {{ validationErrors.bio }}
+                </div>
               </div>
 
               <div class="modal-footer">
@@ -184,6 +202,7 @@ const editForm = ref({});
 const loading = ref(true);
 const saving = ref(false);
 const errorMessage = ref("");
+const validationErrors = ref({});
 let profileModal = null;
 
 const fetchProfile = async () => {
@@ -218,6 +237,7 @@ const showEditModal = () => {
 
 const handleSave = async () => {
   saving.value = true;
+  validationErrors.value = {};
   try {
     const response = await axios.put("api/user/profile", editForm.value, {
       headers: {
@@ -232,8 +252,14 @@ const handleSave = async () => {
       if (profileModal) profileModal.hide();
     }
   } catch (error) {
-    errorMessage.value =
-      error.response?.data?.message || "Failed to update profile";
+    if (error.response?.status === 400) {
+      if (error.response.data.errors.PhoneNumber) {
+        validationErrors.value.phone_number = "Invalid phone number format";
+      }
+    } else {
+      errorMessage.value =
+        error.response?.data?.message || "Failed to update profile";
+    }
   } finally {
     saving.value = false;
   }
