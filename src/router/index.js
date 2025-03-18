@@ -3,6 +3,7 @@ import { useAuthStore } from "../stores/auth";
 import Checkout from "../views/Checkout.vue";
 import OrderDetail from "../views/OrderDetail.vue";
 import BuyerOrders from "../views/buyer/BuyerOrders.vue";
+import SellerProducts from "../views/SellerProducts.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -45,6 +46,17 @@ const router = createRouter({
       name: "BuyerOrders",
       component: BuyerOrders,
       meta: { requiresAuth: true, role: "buyer" },
+    },
+    {
+      path: "/seller/products",
+      name: "SellerProducts",
+      component: SellerProducts,
+      meta: { requiresAuth: true, role: "seller" },
+    },
+    {
+      path: "/seller/edit-product/:productUuid",
+      name: "EditProduct",
+      props: true,
     },
     {
       path: "/checkout",
