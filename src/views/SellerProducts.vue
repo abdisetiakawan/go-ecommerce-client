@@ -146,7 +146,7 @@
                   type="text"
                   class="form-control"
                   id="productName"
-                  v-model="newProduct.name"
+                  v-model="newProduct.product_name"
                   required
                 />
                 <label for="productName">Product Name</label>
@@ -318,7 +318,7 @@ const handleAddProduct = async () => {
     products.value.push(response.data.data);
     showAddModal.value = false;
     newProduct.value = {
-      name: "",
+      product_name: "",
       description: "",
       price: 0,
       stock: 0,
