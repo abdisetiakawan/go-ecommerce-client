@@ -5,6 +5,7 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold">User Profile</h3>
         <button
+          v-if="profileData"
           class="btn btn-primary"
           style="background: #6366f1; border: none"
           @click="showEditModal"
@@ -17,7 +18,7 @@
       <div v-if="profileData" class="row align-items-center mb-4">
         <div class="col-md-3 text-center">
           <img
-            :src="profileData.avatar || '/default-avatar.png'"
+            :src="profileData.avatar || 'https://placehold.co/400'"
             alt="avatar"
             class="profile-avatar mb-3"
           />
@@ -64,6 +65,13 @@
       <!-- Error state -->
       <div v-else class="alert alert-danger">
         {{ errorMessage }}
+        <button
+          v-if="showCreateButton"
+          class="btn btn-link p-0 ms-2"
+          @click="showCreateModal"
+        >
+          Create Profile
+        </button>
       </div>
     </div>
 
@@ -72,11 +80,14 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Edit Profile</h5>
+            <h5 class="modal-title">
+              {{ isCreating ? "Create Profile" : "Edit Profile" }}
+            </h5>
             <button
               type="button"
               class="btn-close"
               data-bs-dismiss="modal"
+              v-if="!isCreating"
             ></button>
           </div>
           <div class="modal-body">
@@ -189,25 +200,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
-import { useRouter } from "vue-router";
+import { ref, onMounted } from "vue";
 import axios from "axios";
 import { Modal } from "bootstrap";
 import { useAuthStore } from "../stores/auth";
 
 const authStore = useAuthStore();
-const router = useRouter();
 const profileData = ref(null);
 const editForm = ref({});
 const loading = ref(true);
 const saving = ref(false);
 const errorMessage = ref("");
 const validationErrors = ref({});
+const isCreating = ref(false);
+const showCreateButton = ref(false);
 let profileModal = null;
 
 const fetchProfile = async () => {
   try {
-    const response = await axios.get("api/user/profile", {
+    const response = await axios.get("http://127.0.0.1:3000/api/user/profile", {
       headers: {
         Authorization: `Bearer ${authStore.authToken}`,
       },
@@ -219,65 +230,78 @@ const fetchProfile = async () => {
       localStorage.setItem("profileData", JSON.stringify(response.data.data));
     }
   } catch (error) {
-    errorMessage.value = "Failed to load profile data";
     if (error.response?.status === 401) {
-      router.push("/login");
+      errorMessage.value = "Failed to load profile data";
+    } else if (error.response?.status === 404) {
+      showCreateButton.value = true;
+      errorMessage.value = "Profile not found. Please create your profile.";
+    } else {
+      errorMessage.value = "Failed to load profile data";
     }
   } finally {
     loading.value = false;
   }
 };
 
-const showEditModal = () => {
-  if (!profileModal) {
-    profileModal = new Modal(document.getElementById("profileModal"));
-  }
+const showCreateModal = () => {
+  isCreating.value = true;
+  initModal(true);
   profileModal.show();
+};
+
+const showEditModal = () => {
+  isCreating.value = false;
+  initModal(false);
+  profileModal.show();
+};
+
+const initModal = (isStatic) => {
+  if (profileModal) profileModal.dispose();
+
+  const options = isStatic ? { backdrop: "static", keyboard: false } : {};
+
+  profileModal = new Modal(document.getElementById("profileModal"), options);
 };
 
 const handleSave = async () => {
   saving.value = true;
   validationErrors.value = {};
-  try {
-    const response = await axios.put("api/user/profile", editForm.value, {
-      headers: {
-        Authorization: `Bearer ${authStore.authToken}`,
-      },
-    });
 
-    if (response.data.status === "success") {
-      profileData.value = response.data.data;
-      localStorage.setItem("profileData", JSON.stringify(response.data.data));
-      await authStore.fetchName();
-      if (profileModal) profileModal.hide();
-    }
+  try {
+    const method = isCreating.value ? "post" : "put";
+    const response = await axios[method](
+      "http://127.0.0.1:3000/api/user/profile",
+      editForm.value,
+      {
+        headers: {
+          Authorization: `Bearer ${authStore.authToken}`,
+        },
+      }
+    );
+
+    profileData.value = response.data.data;
+    isCreating.value = false;
+    profileModal.hide();
+    await fetchProfile();
   } catch (error) {
     if (error.response?.status === 400) {
-      if (error.response.data.errors.PhoneNumber) {
-        validationErrors.value.phone_number = "Invalid phone number format";
-      }
+      validationErrors.value = error.response.data.errors;
     } else {
-      errorMessage.value =
-        error.response?.data?.message || "Failed to update profile";
+      errorMessage.value = error.response?.data?.message || "Operation failed";
     }
   } finally {
     saving.value = false;
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   if (!authStore.authToken) {
-    router.push("/login");
-  } else {
-    const storedProfileData = localStorage.getItem("profileData");
-    if (storedProfileData) {
-      profileData.value = JSON.parse(storedProfileData);
-      editForm.value = { ...profileData.value };
-      loading.value = false;
-    } else {
-      fetchProfile();
-    }
+    errorMessage.value = "Failed to load profile data";
+    loading.value = false;
+    return;
   }
+
+  await fetchProfile();
 });
 </script>
 
