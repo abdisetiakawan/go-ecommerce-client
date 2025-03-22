@@ -155,7 +155,6 @@ import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
 import { useAuthStore } from "../stores/auth";
-import { defineProps } from "vue";
 
 const authStore = useAuthStore();
 const router = useRouter();
