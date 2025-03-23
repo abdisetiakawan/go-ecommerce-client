@@ -94,15 +94,12 @@
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                      <RouterLink
-                        :to="{
-                          name: 'EditProduct',
-                          params: { productUuid: product.product_uuid },
-                        }"
+                      <button
+                        @click="openEditModal(product)"
                         class="dropdown-item"
                       >
                         <i class="bi bi-pencil me-2"></i>Edit
-                      </RouterLink>
+                      </button>
                     </li>
                     <li><hr class="dropdown-divider" /></li>
                     <li>
@@ -194,9 +191,9 @@
                   v-model="newProduct.category"
                   required
                 >
-                  <option value="Electronics">Electronics</option>
-                  <option value="Clothes">Clothes</option>
-                  <option value="Accessories">Accessories</option>
+                  <option value="electronics">Electronics</option>
+                  <option value="clothes">Clothes</option>
+                  <option value="accessories">Accessories</option>
                 </select>
                 <label for="productCategory">Category</label>
               </div>
@@ -217,6 +214,102 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit Product Modal -->
+    <div
+      class="modal fade"
+      :class="{ show: showEditModal }"
+      tabindex="-1"
+      v-if="showEditModal"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Edit Product</h5>
+            <button
+              type="button"
+              class="btn-close"
+              @click="showEditModal = false"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form @submit.prevent="handleEditProduct">
+              <div class="form-floating mb-3">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editProductName"
+                  v-model="editProduct.product_name"
+                  required
+                />
+                <label for="editProductName">Product Name</label>
+              </div>
+              <div class="form-floating mb-3">
+                <textarea
+                  class="form-control"
+                  id="editProductDesc"
+                  style="height: 100px"
+                  v-model="editProduct.description"
+                ></textarea>
+                <label for="editProductDesc">Description</label>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <div class="form-floating">
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="editProductPrice"
+                      step="0.01"
+                      v-model="editProduct.price"
+                      required
+                    />
+                    <label for="editProductPrice">Price</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-floating">
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="editProductStock"
+                      v-model="editProduct.stock"
+                      required
+                    />
+                    <label for="editProductStock">Stock</label>
+                  </div>
+                </div>
+              </div>
+              <div class="form-floating mb-3">
+                <select
+                  class="form-select"
+                  id="editProductCategory"
+                  v-model="editProduct.category"
+                  required
+                >
+                  <option value="electronics">Electronics</option>
+                  <option value="clothes">Clothes</option>
+                  <option value="accessories">Accessories</option>
+                </select>
+                <label for="editProductCategory">Category</label>
+              </div>
+              <div class="modal-footer">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  @click="showEditModal = false"
+                >
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -229,17 +322,27 @@ const authStore = useAuthStore();
 const products = ref([]);
 const loading = ref(true);
 const showAddModal = ref(false);
+const showEditModal = ref(false);
 const searchQuery = ref("");
 const selectedCategory = ref("");
 const minPrice = ref(null);
 const maxPrice = ref(null);
 
 const newProduct = ref({
-  name: "",
+  product_name: "",
   description: "",
   price: 0,
   stock: 0,
   category: "Electronics",
+});
+
+const editProduct = ref({
+  product_uuid: "",
+  product_name: "",
+  description: "",
+  price: 0,
+  stock: 0,
+  category: "",
 });
 
 const categories = computed(() => {
@@ -326,6 +429,32 @@ const handleAddProduct = async () => {
     };
   } catch (error) {
     console.error("Failed to add product:", error);
+  }
+};
+
+const openEditModal = (product) => {
+  editProduct.value = { ...product };
+  showEditModal.value = true;
+};
+
+const handleEditProduct = async () => {
+  try {
+    const response = await axios.put(
+      `http://127.0.0.1:3000/api/seller/products/${editProduct.value.product_uuid}`,
+      editProduct.value,
+      {
+        headers: {
+          Authorization: `Bearer ${authStore.authToken}`,
+        },
+      }
+    );
+    const index = products.value.findIndex(
+      (p) => p.product_uuid === editProduct.value.product_uuid
+    );
+    products.value[index] = response.data.data;
+    showEditModal.value = false;
+  } catch (error) {
+    console.error("Failed to edit product:", error);
   }
 };
 
