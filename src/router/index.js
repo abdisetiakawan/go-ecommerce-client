@@ -4,6 +4,7 @@ import Checkout from "../views/Checkout.vue";
 import OrderDetail from "../views/OrderDetail.vue";
 import BuyerOrders from "../views/buyer/BuyerOrders.vue";
 import SellerProducts from "../views/SellerProducts.vue";
+import SellerOrders from "../views/seller/SellerOrders.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -51,6 +52,12 @@ const router = createRouter({
       path: "/seller/products",
       name: "SellerProducts",
       component: SellerProducts,
+      meta: { requiresAuth: true, role: "seller" },
+    },
+    {
+      path: "/seller/orders",
+      name: "SellerOrders",
+      component: SellerOrders,
       meta: { requiresAuth: true, role: "seller" },
     },
     {
