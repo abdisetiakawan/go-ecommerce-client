@@ -63,12 +63,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import axios from "axios";
 import { Modal } from "bootstrap";
 import { useAuthStore } from "../../stores/auth";
 import { useRouter } from "vue-router";
 import ProductList from "../../components/ProductList.vue";
 import CartSidebar from "../../components/CartSidebar.vue";
+import axiosInstance from "../../services/axios"; // Import axiosInstance
 
 const authStore = useAuthStore();
 const stores = ref([]);
@@ -86,11 +86,9 @@ const cartTotal = computed(() => {
 
 const fetchProducts = async () => {
   try {
-    const response = await axios.get("http://localhost:3000/api/product", {
-      headers: {
-        Authorization: `Bearer ${authStore.authToken}`,
-      },
-    });
+    // Menggunakan axiosInstance yang sudah dikonfigurasi
+    const response = await axiosInstance.get("/product");
+
     if (response.data.status === "success") {
       const products = response.data.data;
       const groupedProducts = products.reduce((acc, product) => {
@@ -110,6 +108,10 @@ const fetchProducts = async () => {
     }
   } catch (error) {
     console.error("Failed to fetch products:", error);
+    if (error.response?.status === 401) {
+      authStore.logout();
+      router.push("/login");
+    }
   }
 };
 
