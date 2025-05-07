@@ -154,8 +154,8 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
-import axios from "axios";
 import { useAuthStore } from "../stores/auth";
+import axiosInstance from "../services/axios";
 
 const route = useRoute();
 const authStore = useAuthStore();
@@ -205,14 +205,8 @@ const formattedTotalPrice = computed(() => {
 const fetchOrder = async () => {
   try {
     loading.value = true;
-    const response = await axios.get(
-      `http://localhost:3000/api/buyer/orders/${route.params.orderUuid}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authStore.authToken}`,
-        },
-        timeout: 10000,
-      }
+    const response = await axiosInstance.get(
+      `/buyer/orders/${route.params.orderUuid}`
     );
 
     if (response.data.status === "success") {
@@ -239,14 +233,8 @@ const fetchOrder = async () => {
 
 const cancelOrder = async () => {
   try {
-    const response = await axios.patch(
-      `http://localhost:3000/api/buyer/orders/${route.params.orderUuid}/cancel`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${authStore.authToken}`,
-        },
-      }
+    const response = await axiosInstance.patch(
+      `/buyer/orders/${route.params.orderUuid}/cancel`
     );
 
     if (response.data.status === "success") {
@@ -270,14 +258,8 @@ const cancelOrder = async () => {
 const checkoutOrder = async () => {
   try {
     processingCheckout.value = true;
-    const response = await axios.patch(
-      `http://localhost:3000/api/buyer/orders/${route.params.orderUuid}/checkout`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${authStore.authToken}`,
-        },
-      }
+    const response = await axiosInstance.patch(
+      `/buyer/orders/${route.params.orderUuid}/checkout`
     );
 
     if (response.data.status === "success") {
