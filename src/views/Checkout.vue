@@ -152,8 +152,8 @@
 
 <script setup>
 import { ref } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import axios from "axios";
+import { useRouter } from "vue-router";
+import axiosInstance from "../services/axios";
 import { useAuthStore } from "../stores/auth";
 
 const authStore = useAuthStore();
@@ -196,17 +196,7 @@ const submitOrder = async () => {
       },
     };
 
-    const response = await axios.post(
-      "http://127.0.0.1:3000/api/buyer/orders",
-      orderData,
-      {
-        headers: {
-          Authorization: `Bearer ${authStore.authToken}`,
-        },
-      }
-    );
-
-    console.log("Checkout response:", response.data);
+    const response = await axiosInstance.post("/buyer/orders", orderData);
 
     if (response.data.status === "success") {
       showSuccess.value = true;
@@ -219,7 +209,13 @@ const submitOrder = async () => {
     }
   } catch (error) {
     console.error("Checkout error:", error);
-    alert("Failed to place order. Please try again.");
+    // Handle unauthorized error
+    if (error.response?.status === 401) {
+      authStore.logout();
+      router.push("/login");
+    } else {
+      alert("Failed to place order. Please try again.");
+    }
   } finally {
     processing.value = false;
   }
