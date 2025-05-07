@@ -315,9 +315,11 @@
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
-import axios from "axios";
 import { useAuthStore } from "../stores/auth";
+import { useRouter } from "vue-router";
+import axiosInstance from "../services/axios";
 
+const router = useRouter();
 const authStore = useAuthStore();
 const products = ref([]);
 const loading = ref(true);
@@ -372,16 +374,16 @@ const filteredProducts = computed(() => {
 
 const fetchProducts = async () => {
   try {
-    const response = await axios.get("http://127.0.0.1:3000/api/product", {
-      headers: {
-        Authorization: `Bearer ${authStore.authToken}`,
-      },
-    });
+    const response = await axiosInstance.get("/product");
     if (response.data.status === "success") {
       products.value = response.data.data;
     }
   } catch (error) {
     console.error("Failed to fetch products:", error);
+    if (error.response?.status === 401) {
+      authStore.logout();
+      router.push("/login");
+    }
   } finally {
     loading.value = false;
   }
@@ -390,33 +392,25 @@ const fetchProducts = async () => {
 const deleteProduct = async (productUuid) => {
   if (confirm("Are you sure you want to delete this product?")) {
     try {
-      await axios.delete(
-        `http://127.0.0.1:3000/api/seller/products/${productUuid}`,
-        {
-          headers: {
-            Authorization: `Bearer ${authStore.authToken}`,
-          },
-        }
-      );
+      await axiosInstance.delete(`/seller/products/${productUuid}`);
       products.value = products.value.filter(
         (product) => product.product_uuid !== productUuid
       );
     } catch (error) {
       console.error("Failed to delete product:", error);
+      if (error.response?.status === 401) {
+        authStore.logout();
+        router.push("/login");
+      }
     }
   }
 };
 
 const handleAddProduct = async () => {
   try {
-    const response = await axios.post(
-      "http://127.0.0.1:3000/api/seller/products",
-      newProduct.value,
-      {
-        headers: {
-          Authorization: `Bearer ${authStore.authToken}`,
-        },
-      }
+    const response = await axiosInstance.post(
+      "/seller/products",
+      newProduct.value
     );
     products.value.push(response.data.data);
     showAddModal.value = false;
@@ -429,6 +423,10 @@ const handleAddProduct = async () => {
     };
   } catch (error) {
     console.error("Failed to add product:", error);
+    if (error.response?.status === 401) {
+      authStore.logout();
+      router.push("/login");
+    }
   }
 };
 
@@ -439,14 +437,9 @@ const openEditModal = (product) => {
 
 const handleEditProduct = async () => {
   try {
-    const response = await axios.put(
-      `http://127.0.0.1:3000/api/seller/products/${editProduct.value.product_uuid}`,
-      editProduct.value,
-      {
-        headers: {
-          Authorization: `Bearer ${authStore.authToken}`,
-        },
-      }
+    const response = await axiosInstance.put(
+      `/seller/products/${editProduct.value.product_uuid}`,
+      editProduct.value
     );
     const index = products.value.findIndex(
       (p) => p.product_uuid === editProduct.value.product_uuid
@@ -455,6 +448,10 @@ const handleEditProduct = async () => {
     showEditModal.value = false;
   } catch (error) {
     console.error("Failed to edit product:", error);
+    if (error.response?.status === 401) {
+      authStore.logout();
+      router.push("/login");
+    }
   }
 };
 
