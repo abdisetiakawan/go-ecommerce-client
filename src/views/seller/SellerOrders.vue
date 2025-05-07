@@ -122,10 +122,11 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import axios from "axios";
 import { useAuthStore } from "../../stores/auth";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
+import axiosInstance from "../../services/axios";
 
+const router = useRouter();
 const authStore = useAuthStore();
 const orders = ref([]);
 const statusFilter = ref("");
@@ -134,19 +135,13 @@ const totalPages = ref(1);
 
 const fetchOrders = async () => {
   try {
-    const response = await axios.get(
-      "http://127.0.0.1:3000/api/seller/orders",
-      {
-        headers: {
-          Authorization: `Bearer ${authStore.authToken}`,
-        },
-        params: {
-          status: statusFilter.value,
-          page: currentPage.value,
-          limit: 10,
-        },
-      }
-    );
+    const response = await axiosInstance.get("/seller/orders", {
+      params: {
+        status: statusFilter.value,
+        page: currentPage.value,
+        limit: 10,
+      },
+    });
 
     if (response.data.status === "success") {
       orders.value = response.data.data;
@@ -154,6 +149,11 @@ const fetchOrders = async () => {
     }
   } catch (error) {
     console.error("Failed to fetch orders:", error);
+    // Handle unauthorized error
+    if (error.response?.status === 401) {
+      authStore.logout();
+      router.push("/login");
+    }
   }
 };
 
