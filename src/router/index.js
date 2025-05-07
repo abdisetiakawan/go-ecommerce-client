@@ -5,6 +5,7 @@ import OrderDetail from "../views/OrderDetail.vue";
 import BuyerOrders from "../views/buyer/BuyerOrders.vue";
 import SellerProducts from "../views/SellerProducts.vue";
 import SellerOrders from "../views/seller/SellerOrders.vue";
+import Cookies from "js-cookie";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -96,18 +97,21 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
+  const hasAuthToken = Cookies.get("authToken");
 
-  // redirect user kalau dia ingin mengakses halaman guest (contohnya : halaman login)
-  if (to.meta.requiresGuest && authStore.authToken) {
+  // Redirect jika mencoba akses halaman guest (login)
+  if (to.meta.requiresGuest && hasAuthToken) {
     return authStore.userRole === "seller"
       ? "/seller/dashboard"
       : "/buyer/dashboard";
   }
 
-  if (to.meta.requiresAuth && !authStore.authToken) {
+  // Redirect ke login jika tidak ada token
+  if (to.meta.requiresAuth && !hasAuthToken) {
     return "/login";
   }
 
+  // Validasi role
   if (to.meta.role && to.meta.role !== authStore.userRole) {
     return authStore.userRole === "seller"
       ? "/seller/dashboard"

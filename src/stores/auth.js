@@ -1,28 +1,64 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import axios from "axios";
-import authService from "../services/auth.js";
+import Cookies from "js-cookie";
 
 export const useAuthStore = defineStore("auth", () => {
-  const userRole = ref(localStorage.getItem("userRole") || null);
-  const authToken = ref(localStorage.getItem("authToken") || null);
-  const userName = ref(localStorage.getItem("userName") || null);
+  const userRole = ref(Cookies.get("userRole") || null);
+  const authToken = ref(Cookies.get("authToken") || null);
+  const userName = ref(Cookies.get("userName") || null);
 
   async function login(credentials) {
-    const result = await authService.login(credentials);
-    if (result.success) {
-      userRole.value = result.data.role;
-      authToken.value = result.data.token;
-      localStorage.setItem("authToken", result.data.token);
-      localStorage.setItem("userRole", result.data.role);
-      await fetchName();
+    try {
+      const response = await axios.post(
+        `http://localhost:3000/api/auth/login`,
+        credentials,
+        {
+          withCredentials: true, // Penting untuk menerima cookies dari server
+        }
+      );
+
+      if (response.data.status === "success") {
+        const { role, access_token } = response.data.data;
+
+        // Set cookies dengan opsi yang aman
+        Cookies.set("authToken", access_token, {
+          secure: true,
+          sameSite: "strict",
+          expires: 7, // expires dalam 7 hari
+        });
+        Cookies.set("userRole", role, {
+          secure: true,
+          sameSite: "strict",
+          expires: 7,
+        });
+
+        userRole.value = role;
+        authToken.value = access_token;
+
+        await fetchName();
+
+        return {
+          success: true,
+          data: { role, token: access_token },
+        };
+      }
+      return { success: false, message: "Login failed" };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Login error",
+      };
     }
-    return result;
   }
 
   function logout() {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userRole");
+    // Hapus cookies
+    Cookies.remove("authToken");
+    Cookies.remove("userRole");
+    Cookies.remove("userName");
+
+    // Reset state
     userRole.value = null;
     authToken.value = null;
     userName.value = null;
@@ -33,6 +69,7 @@ export const useAuthStore = defineStore("auth", () => {
       const response = await axios.get(
         `http://localhost:3000/api/user/profile`,
         {
+          withCredentials: true,
           headers: {
             Authorization: `Bearer ${authToken.value}`,
           },
@@ -40,9 +77,14 @@ export const useAuthStore = defineStore("auth", () => {
       );
 
       if (response.data.status === "success") {
-        userName.value = response.data.data.name;
-        localStorage.setItem("userName", response.data.data.name);
-        return userName.value;
+        const name = response.data.data.name;
+        Cookies.set("userName", name, {
+          secure: true,
+          sameSite: "strict",
+          expires: 7,
+        });
+        userName.value = name;
+        return name;
       }
     } catch (error) {
       return null;
@@ -52,9 +94,9 @@ export const useAuthStore = defineStore("auth", () => {
   return {
     userRole,
     authToken,
+    userName,
     login,
     logout,
     fetchName,
-    userName,
   };
 });

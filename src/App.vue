@@ -10,8 +10,9 @@
 import { useAuthStore } from "./stores/auth";
 import NavbarSeller from "./components/NavbarSeller.vue";
 import NavbarBuyer from "./components/NavbarBuyer.vue";
-import { watch } from "vue";
+import { watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import Cookies from "js-cookie";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -25,4 +26,12 @@ watch(
     }
   }
 );
+
+// Check authentication status on app mount
+onMounted(() => {
+  const token = Cookies.get("authToken");
+  if (!token && router.currentRoute.value.meta.requiresAuth) {
+    router.push("/login");
+  }
+});
 </script>
