@@ -201,9 +201,9 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import axios from "axios";
 import { Modal } from "bootstrap";
 import { useAuthStore } from "../stores/auth";
+import axiosInstance from "../services/axios";
 
 const authStore = useAuthStore();
 const profileData = ref(null);
@@ -218,20 +218,16 @@ let profileModal = null;
 
 const fetchProfile = async () => {
   try {
-    const response = await axios.get("http://127.0.0.1:3000/api/user/profile", {
-      headers: {
-        Authorization: `Bearer ${authStore.authToken}`,
-      },
-    });
+    const response = await axiosInstance.get("/user/profile");
 
     if (response.data.status === "success") {
       profileData.value = response.data.data;
       editForm.value = { ...response.data.data };
-      localStorage.setItem("profileData", JSON.stringify(response.data.data));
     }
   } catch (error) {
     if (error.response?.status === 401) {
       errorMessage.value = "Failed to load profile data";
+      authStore.logout();
     } else if (error.response?.status === 404) {
       showCreateButton.value = true;
       errorMessage.value = "Profile not found. Please create your profile.";
@@ -269,14 +265,9 @@ const handleSave = async () => {
 
   try {
     const method = isCreating.value ? "post" : "put";
-    const response = await axios[method](
-      "http://127.0.0.1:3000/api/user/profile",
-      editForm.value,
-      {
-        headers: {
-          Authorization: `Bearer ${authStore.authToken}`,
-        },
-      }
+    const response = await axiosInstance[method](
+      "/user/profile",
+      editForm.value
     );
 
     profileData.value = response.data.data;
