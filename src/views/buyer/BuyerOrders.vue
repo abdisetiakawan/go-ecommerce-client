@@ -111,9 +111,11 @@
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import axios from "axios";
 import { RouterLink } from "vue-router";
+import axiosInstance from "../../services/axios"; // Import axios instance
+import { useAuthStore } from "../../stores/auth"; // Import auth store
 
+const authStore = useAuthStore();
 const orders = ref([]);
 const statusFilter = ref("");
 const currentPage = ref(1);
@@ -143,10 +145,8 @@ const pageRange = computed(() => {
 const fetchOrders = async () => {
   isLoading.value = true;
   try {
-    const response = await axios.get("http://localhost:3000/api/buyer/orders", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-      },
+    // Menggunakan axiosInstance yang sudah dikonfigurasi
+    const response = await axiosInstance.get("/buyer/orders", {
       params: {
         status: statusFilter.value,
         page: currentPage.value,
@@ -169,6 +169,12 @@ const fetchOrders = async () => {
     console.error("Failed to fetch orders:", error);
     orders.value = [];
     totalPages.value = 1;
+
+    // Handle unauthorized error
+    if (error.response?.status === 401) {
+      authStore.logout();
+      router.push("/login");
+    }
   } finally {
     isLoading.value = false;
   }
