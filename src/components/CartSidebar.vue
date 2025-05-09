@@ -13,16 +13,18 @@
         <div>
           <h6>{{ item.product_name }}</h6>
           <div class="text-muted">
-            {{ item.quantity }} × Rp{{ item.price }}
+            {{ item.quantity }} × Rp{{ formatPrice(item.price) }}
             <button
-              class="btn btn-link text-danger btn-sm"
-              @click="removeFromCart(item.product_uuid)"
+              class="btn btn-link text-danger btn-sm p-0 ms-2"
+              @click="$emit('removeFromCart', item.product_uuid)"
             >
               <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
-        <div class="text-end">Rp{{ item.quantity * item.price }}</div>
+        <div class="text-end">
+          Rp{{ formatPrice(item.quantity * item.price) }}
+        </div>
       </div>
     </div>
     <hr v-if="cartItems.length" />
@@ -44,14 +46,19 @@
 </template>
 
 <script setup>
-defineProps({
+import { defineProps, defineEmits } from "vue";
+
+const props = defineProps({
   currentStore: String,
   cartItems: Array,
   cartTotal: Number,
-  removeFromCart: Function,
 });
 
-defineEmits(["proceedToCheckout"]);
+const emit = defineEmits(["removeFromCart", "proceedToCheckout"]);
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat("id-ID").format(price);
+};
 </script>
 
 <style scoped>
@@ -62,5 +69,13 @@ defineEmits(["proceedToCheckout"]);
   padding: 1.5rem;
   position: sticky;
   top: 1rem;
+}
+
+.btn-link {
+  text-decoration: none;
+}
+
+.btn-link:hover {
+  opacity: 0.8;
 }
 </style>
