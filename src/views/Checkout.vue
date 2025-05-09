@@ -2,6 +2,11 @@
   <div class="main-card">
     <h3 class="fw-bold mb-4">Checkout</h3>
 
+    <!-- Show general error message if exists -->
+    <div v-if="errorMessage" class="alert alert-danger mb-4">
+      {{ errorMessage }}
+    </div>
+
     <div class="row g-4">
       <!-- Shipping Form -->
       <div class="col-md-7">
@@ -9,72 +14,119 @@
           <div class="card-body">
             <h5 class="card-title mb-4">Shipping Details</h5>
             <form @submit.prevent="submitOrder">
-              <div class="mb-3">
-                <label class="form-label">Address</label>
+              <div class="form-floating mb-3">
                 <input
                   v-model="shippingAddress.address"
                   type="text"
                   class="form-control"
+                  :class="{ 'is-invalid': validationErrors.address }"
+                  id="address"
+                  placeholder="Enter address"
                   required
                 />
+                <label for="address">Address</label>
+                <div class="invalid-feedback" v-if="validationErrors.address">
+                  {{ validationErrors.address }}
+                </div>
               </div>
 
               <div class="row g-3 mb-3">
                 <div class="col-md-4">
-                  <label class="form-label">City</label>
-                  <input
-                    v-model="shippingAddress.city"
-                    type="text"
-                    class="form-control"
-                    required
-                  />
+                  <div class="form-floating">
+                    <input
+                      v-model="shippingAddress.city"
+                      type="text"
+                      class="form-control"
+                      :class="{ 'is-invalid': validationErrors.city }"
+                      id="city"
+                      placeholder="Enter city"
+                      required
+                    />
+                    <label for="city">City</label>
+                    <div class="invalid-feedback" v-if="validationErrors.city">
+                      {{ validationErrors.city }}
+                    </div>
+                  </div>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Province</label>
-                  <input
-                    v-model="shippingAddress.province"
-                    type="text"
-                    class="form-control"
-                    required
-                  />
+                  <div class="form-floating">
+                    <input
+                      v-model="shippingAddress.province"
+                      type="text"
+                      class="form-control"
+                      :class="{ 'is-invalid': validationErrors.province }"
+                      id="province"
+                      placeholder="Enter province"
+                      required
+                    />
+                    <label for="province">Province</label>
+                    <div
+                      class="invalid-feedback"
+                      v-if="validationErrors.province"
+                    >
+                      {{ validationErrors.province }}
+                    </div>
+                  </div>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Postal Code</label>
-                  <input
-                    v-model="shippingAddress.postal_code"
-                    type="text"
-                    class="form-control"
-                    pattern="[0-9]{5}"
-                    required
-                  />
+                  <div class="form-floating">
+                    <input
+                      v-model="shippingAddress.postal_code"
+                      type="text"
+                      class="form-control"
+                      :class="{ 'is-invalid': validationErrors.postal_code }"
+                      id="postal_code"
+                      placeholder="Enter postal code"
+                      pattern="[0-9]{5}"
+                      required
+                    />
+                    <label for="postal_code">Postal Code</label>
+                    <div
+                      class="invalid-feedback"
+                      v-if="validationErrors.postal_code"
+                    >
+                      {{ validationErrors.postal_code }}
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <h5 class="card-title mb-4 mt-4">Payment Method</h5>
-              <div class="form-check">
-                <input
-                  v-model="paymentMethod"
-                  class="form-check-input"
-                  type="radio"
-                  value="transfer"
-                  id="transfer"
-                  checked
-                />
-                <label class="form-check-label" for="transfer"
-                  >Bank Transfer</label
+              <div
+                class="form-group"
+                :class="{ 'is-invalid': validationErrors.payment_method }"
+              >
+                <div class="form-check">
+                  <input
+                    v-model="paymentMethod"
+                    class="form-check-input"
+                    type="radio"
+                    value="transfer"
+                    id="transfer"
+                    checked
+                  />
+                  <label class="form-check-label" for="transfer"
+                    >Bank Transfer</label
+                  >
+                </div>
+                <div class="form-check">
+                  <input
+                    v-model="paymentMethod"
+                    class="form-check-input"
+                    type="radio"
+                    value="cash"
+                    id="cash"
+                  />
+                  <label class="form-check-label" for="cash"
+                    >Cash on Delivery</label
+                  >
+                </div>
+                <div
+                  class="invalid-feedback"
+                  v-if="validationErrors.payment_method"
                 >
-              </div>
-              <div class="form-check">
-                <input
-                  v-model="paymentMethod"
-                  class="form-check-input"
-                  type="radio"
-                  value="cash"
-                  id="cash"
-                />
-                <label class="form-check-label" for="cash"
-                  >Cash on Delivery</label
-                >
+                  {{ validationErrors.payment_method }}
+                </div>
               </div>
             </form>
           </div>
@@ -169,6 +221,8 @@ const shippingAddress = ref({
 const paymentMethod = ref("transfer");
 const processing = ref(false);
 const showSuccess = ref(false);
+const errorMessage = ref("");
+const validationErrors = ref({});
 
 const props = defineProps({
   cartItems: {
@@ -183,6 +237,8 @@ const props = defineProps({
 
 const submitOrder = async () => {
   processing.value = true;
+  validationErrors.value = {};
+  errorMessage.value = "";
 
   try {
     const orderData = {
@@ -209,12 +265,23 @@ const submitOrder = async () => {
     }
   } catch (error) {
     console.error("Checkout error:", error);
-    // Handle unauthorized error
     if (error.response?.status === 401) {
       authStore.logout();
       router.push("/login");
+    } else if (error.response?.data?.errors?.errors) {
+      // Map API validation errors to form fields
+      const apiErrors = error.response.data.errors.errors;
+      validationErrors.value = {
+        address: apiErrors.Address?.message || "",
+        city: apiErrors.City?.message || "",
+        province: apiErrors.Province?.message || "",
+        postal_code: apiErrors.PostalCode?.message || "",
+        payment_method: apiErrors.PaymentMethod?.message || "",
+      };
+      errorMessage.value = error.response.data.message;
     } else {
-      alert("Failed to place order. Please try again.");
+      errorMessage.value =
+        error.response?.data?.message || "Failed to place order";
     }
   } finally {
     processing.value = false;
@@ -271,5 +338,22 @@ const submitOrder = async () => {
   height: 100vh;
   z-index: 1050;
   backdrop-filter: blur(5px);
+}
+
+.invalid-feedback {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: #dc3545;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: #dc3545;
+  padding-right: calc(1.5em + 0.75rem);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right calc(0.375em + 0.1875rem) center;
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
 }
 </style>
