@@ -37,13 +37,13 @@
           </p>
         </div>
         <div class="text-end">
-          <span :class="['status-pill', `status-${orderData.status}`]">
+          <span :class="statusBadgeClass">
             {{ formattedStatus }}
           </span>
           <div class="mt-3" v-if="orderData.status === 'pending'">
             <button
               class="btn btn-outline-danger btn-sm me-2"
-              @click="showCancelModal = true"
+              @click="cancelOrder"
             >
               <i class="bi bi-x-circle me-1"></i>Cancel Order
             </button>
@@ -144,70 +144,38 @@
       </div>
     </div>
   </div>
-
-  <!-- Cancel Order Modal -->
-  <div
-    v-if="showCancelModal"
-    class="modal d-block"
-    tabindex="-1"
-    style="background: rgba(0, 0, 0, 0.5)"
-  >
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Konfirmasi Pembatalan</h5>
-          <button
-            type="button"
-            class="btn-close"
-            @click="showCancelModal = false"
-          ></button>
-        </div>
-        <div class="modal-body">
-          <p>Anda yakin ingin membatalkan pesanan ini?</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" @click="showCancelModal = false">
-            Tutup
-          </button>
-          <button class="btn btn-danger" @click="cancelOrder">
-            Batalkan Pesanan
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
-import { useRoute } from "vue-router";
+import { ref, computed, watch, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import axiosInstance from "../services/axios";
+import Swal from "sweetalert2";
 
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 
 const orderData = ref({
+  order_uuid: "",
+  status: "",
+  created_at: new Date().toISOString(),
+  total_price: 0,
   payment: {},
   shipping: {},
   items: [],
 });
 const loading = ref(true);
-const showCancelModal = ref(false);
 const processingCheckout = ref(false);
 
 const formattedStatus = computed(() => {
   return orderData.value.status?.toUpperCase() || "BELUM DIKETAHUI";
 });
 
-const statusBadgeClass = computed(() => ({
-  "status-badge": true,
-  "bg-primary": orderData.value.status === "processed",
-  "bg-warning": orderData.value.status === "pending",
-  "bg-success": orderData.value.status === "completed",
-  "bg-danger": orderData.value.status === "cancelled",
-  "bg-secondary": !orderData.value.status,
-}));
+const statusBadgeClass = computed(() => {
+  return ["status-pill", `status-${orderData.value.status || "unknown"}`];
+});
 
 const paymentMethod = computed(() => {
   return (
@@ -250,9 +218,18 @@ const fetchOrder = async () => {
       response: error.response?.data,
       code: error.code,
     });
-    alert(
-      `Gagal memuat pesanan: ${error.response?.data?.message || error.message}`
-    );
+
+    Swal.fire({
+      title: "Error",
+      text: `Gagal memuat pesanan: ${error.response?.data?.message || error.message}`,
+      icon: "error",
+      confirmButtonColor: "#3085d6",
+    });
+
+    // Redirect back to orders page if order not found
+    if (error.response?.status === 404) {
+      router.push("/buyer/orders");
+    }
   } finally {
     loading.value = false;
   }
@@ -260,71 +237,148 @@ const fetchOrder = async () => {
 
 const cancelOrder = async () => {
   try {
-    const response = await axiosInstance.patch(
-      `/buyer/orders/${route.params.orderUuid}/cancel`
-    );
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this action!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, cancel order!",
+      showLoaderOnConfirm: true,
+      preConfirm: async () => {
+        try {
+          const response = await axiosInstance.patch(
+            `/buyer/orders/${route.params.orderUuid}/cancel`
+          );
+          return response.data;
+        } catch (error) {
+          Swal.showValidationMessage(
+            `Failed to cancel: ${error.response?.data?.message || error.message}`
+          );
+        }
+      },
+      allowOutsideClick: () => !Swal.isLoading(),
+    });
 
-    if (response.data.status === "success") {
+    if (result.isConfirmed && result.value) {
       orderData.value = {
-        ...response.data.data,
-        payment: response.data.data.payment || {},
-        shipping: response.data.data.shipping || {},
-        items: response.data.data.items || [],
+        ...result.value.data,
+        payment: result.value.data.payment || {},
+        shipping: result.value.data.shipping || {},
+        items: result.value.data.items || [],
       };
-      showCancelModal.value = false;
-      alert("Pesanan berhasil dibatalkan");
+
+      await Swal.fire({
+        title: "Cancelled!",
+        text: "Your order has been cancelled.",
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false,
+      });
     }
   } catch (error) {
     console.error("Error cancelling order:", error);
-    alert(
-      `Gagal membatalkan pesanan: ${error.response?.data?.message || error.message}`
-    );
+    Swal.fire({
+      title: "Error!",
+      text: error.response?.data?.message || "Failed to cancel order",
+      icon: "error",
+    });
   }
 };
 
 const checkoutOrder = async () => {
   try {
     processingCheckout.value = true;
+
+    // Show loading dialog
+    Swal.fire({
+      title: "Processing Checkout",
+      text: "Please wait...",
+      icon: "info",
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    // Make API call
     const response = await axiosInstance.patch(
       `/buyer/orders/${route.params.orderUuid}/checkout`
     );
 
     if (response.data.status === "success") {
+      // Update order data
       orderData.value = {
         ...response.data.data,
         payment: response.data.data.payment || {},
         shipping: response.data.data.shipping || {},
         items: response.data.data.items || [],
       };
-      alert("Checkout berhasil");
+
+      // Show success message
+      await Swal.fire({
+        title: "Success!",
+        text: "Checkout completed successfully",
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      // Refresh order data
+      await fetchOrder();
     }
   } catch (error) {
     console.error("Error during checkout:", error);
-    alert(
-      `Gagal melakukan checkout: ${error.response?.data?.message || error.message}`
-    );
+
+    // Show error message
+    await Swal.fire({
+      title: "Checkout Failed",
+      text: error.response?.data?.message || "Failed to process checkout",
+      icon: "error",
+      confirmButtonColor: "#3085d6",
+    });
+
+    // Handle unauthorized error
+    if (error.response?.status === 401) {
+      authStore.logout();
+      router.push("/login");
+    }
   } finally {
     processingCheckout.value = false;
   }
 };
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  if (!dateString) return "Date not available";
+
+  try {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (error) {
+    console.error("Date formatting error:", error);
+    return dateString;
+  }
 };
+
+onMounted(() => {
+  if (route.params.orderUuid) {
+    fetchOrder();
+  }
+});
 
 watch(
   () => route.params.orderUuid,
   (newVal) => {
     if (newVal) fetchOrder();
-  },
-  { immediate: true }
+  }
 );
 </script>
 
@@ -379,6 +433,11 @@ watch(
   color: #721c24;
 }
 
+.status-unknown {
+  background-color: #e2e3e5;
+  color: #383d41;
+}
+
 .item-image-placeholder {
   width: 64px;
   height: 64px;
@@ -405,5 +464,30 @@ watch(
 
 .badge {
   padding: 0.5em 1em;
+}
+
+/* Add these new styles for SweetAlert customization */
+:deep(.swal2-popup) {
+  border-radius: 15px;
+  padding: 2rem;
+}
+
+:deep(.swal2-title) {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+:deep(.swal2-html-container) {
+  font-size: 1rem;
+}
+
+:deep(.swal2-confirm) {
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
+}
+
+:deep(.swal2-cancel) {
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
 }
 </style>
