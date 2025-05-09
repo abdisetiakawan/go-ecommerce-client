@@ -91,17 +91,23 @@
             ></button>
           </div>
           <div class="modal-body">
+            <!-- Show general error message if exists -->
+            <div v-if="errorMessage" class="alert alert-danger">
+              {{ errorMessage }}
+            </div>
+
             <form @submit.prevent="handleSave">
               <div class="form-floating mb-3">
                 <input
                   type="text"
                   class="form-control"
+                  :class="{ 'is-invalid': validationErrors.name }"
                   id="name"
                   v-model="editForm.name"
                   required
                 />
                 <label for="name">Full Name</label>
-                <div v-if="validationErrors.name" class="text-danger">
+                <div class="invalid-feedback" v-if="validationErrors.name">
                   {{ validationErrors.name }}
                 </div>
               </div>
@@ -110,13 +116,52 @@
                 <input
                   type="tel"
                   class="form-control"
+                  :class="{ 'is-invalid': validationErrors.phone_number }"
                   id="phone"
                   v-model="editForm.phone_number"
                   required
+                  placeholder="+628123456789"
                 />
-                <label for="phone">Phone Number</label>
-                <div v-if="validationErrors.phone_number" class="text-danger">
+                <label for="phone"
+                  >Phone Number (E.164 format: +628123456789)</label
+                >
+                <div
+                  class="invalid-feedback"
+                  v-if="validationErrors.phone_number"
+                >
                   {{ validationErrors.phone_number }}
+                </div>
+              </div>
+
+              <div class="form-floating mb-3">
+                <select
+                  class="form-select"
+                  :class="{ 'is-invalid': validationErrors.gender }"
+                  id="gender"
+                  v-model="editForm.gender"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+                <label for="gender">Gender</label>
+                <div class="invalid-feedback" v-if="validationErrors.gender">
+                  {{ validationErrors.gender }}
+                </div>
+              </div>
+
+              <div class="form-floating mb-3">
+                <input
+                  type="url"
+                  class="form-control"
+                  :class="{ 'is-invalid': validationErrors.avatar }"
+                  id="avatar"
+                  v-model="editForm.avatar"
+                  placeholder="https://example.com/avatar.jpg"
+                />
+                <label for="avatar">Avatar URL</label>
+                <div class="invalid-feedback" v-if="validationErrors.avatar">
+                  {{ validationErrors.avatar }}
                 </div>
               </div>
 
@@ -131,34 +176,6 @@
                 <label for="address">Address</label>
                 <div v-if="validationErrors.address" class="text-danger">
                   {{ validationErrors.address }}
-                </div>
-              </div>
-
-              <div class="form-floating mb-3">
-                <select
-                  class="form-select"
-                  id="gender"
-                  v-model="editForm.gender"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-                <label for="gender">Gender</label>
-                <div v-if="validationErrors.gender" class="text-danger">
-                  {{ validationErrors.gender }}
-                </div>
-              </div>
-
-              <div class="form-floating mb-3">
-                <input
-                  type="url"
-                  class="form-control"
-                  id="avatar"
-                  v-model="editForm.avatar"
-                />
-                <label for="avatar">Avatar URL</label>
-                <div v-if="validationErrors.avatar" class="text-danger">
-                  {{ validationErrors.avatar }}
                 </div>
               </div>
 
@@ -270,13 +287,23 @@ const handleSave = async () => {
       editForm.value
     );
 
-    profileData.value = response.data.data;
-    isCreating.value = false;
-    profileModal.hide();
-    await fetchProfile();
+    if (response.data.status === "success") {
+      profileData.value = response.data.data;
+      isCreating.value = false;
+      profileModal.hide();
+      await fetchProfile();
+    }
   } catch (error) {
-    if (error.response?.status === 400) {
-      validationErrors.value = error.response.data.errors;
+    if (error.response?.data?.errors?.errors) {
+      // Map API validation errors to form fields
+      const apiErrors = error.response.data.errors.errors;
+      validationErrors.value = {
+        name: apiErrors.Name?.message || "",
+        phone_number: apiErrors.PhoneNumber?.message || "",
+        gender: apiErrors.Gender?.message || "",
+        avatar: apiErrors.Avatar?.message || "",
+      };
+      errorMessage.value = error.response.data.message;
     } else {
       errorMessage.value = error.response?.data?.message || "Operation failed";
     }
@@ -325,5 +352,22 @@ body {
 .nav-link.active {
   color: #6366f1 !important;
   border-bottom: 2px solid #6366f1;
+}
+
+.invalid-feedback {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: #dc3545;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: #dc3545;
+  padding-right: calc(1.5em + 0.75rem);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right calc(0.375em + 0.1875rem) center;
+  background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
 }
 </style>
