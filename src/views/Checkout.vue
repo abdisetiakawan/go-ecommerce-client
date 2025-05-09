@@ -1,18 +1,29 @@
 <template>
-  <div class="main-card">
-    <h3 class="fw-bold mb-4">Checkout</h3>
+  <div class="checkout-container animate__animated animate__fadeIn">
+    <h3 class="fw-bold mb-4"><i class="bi bi-cart-check me-2"></i>Checkout</h3>
 
-    <!-- Show general error message if exists -->
-    <div v-if="errorMessage" class="alert alert-danger mb-4">
+    <!-- Error Alert -->
+    <div
+      v-if="errorMessage"
+      class="alert alert-danger alert-dismissible fade show mb-4"
+    >
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
       {{ errorMessage }}
+      <button
+        @click="errorMessage = ''"
+        type="button"
+        class="btn-close"
+      ></button>
     </div>
 
     <div class="row g-4">
       <!-- Shipping Form -->
       <div class="col-md-7">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title mb-4">Shipping Details</h5>
+        <div class="card shadow-sm">
+          <div class="card-body p-4">
+            <h5 class="card-title mb-4">
+              <i class="bi bi-truck me-2"></i>Shipping Details
+            </h5>
             <form @submit.prevent="submitOrder">
               <div class="form-floating mb-3">
                 <input
@@ -91,42 +102,48 @@
                 </div>
               </div>
 
-              <h5 class="card-title mb-4 mt-4">Payment Method</h5>
-              <div
-                class="form-group"
-                :class="{ 'is-invalid': validationErrors.payment_method }"
-              >
-                <div class="form-check">
+              <h5 class="card-title mb-4 mt-5">
+                <i class="bi bi-credit-card me-2"></i>Payment Method
+              </h5>
+              <div class="payment-options">
+                <div
+                  class="payment-option"
+                  :class="{ active: paymentMethod === 'transfer' }"
+                >
                   <input
                     v-model="paymentMethod"
-                    class="form-check-input"
                     type="radio"
                     value="transfer"
                     id="transfer"
-                    checked
+                    class="visually-hidden"
                   />
-                  <label class="form-check-label" for="transfer"
-                    >Bank Transfer</label
-                  >
+                  <label class="payment-label" for="transfer">
+                    <i class="bi bi-bank me-2"></i>
+                    <span>Bank Transfer</span>
+                  </label>
                 </div>
-                <div class="form-check">
+                <div
+                  class="payment-option"
+                  :class="{ active: paymentMethod === 'cash' }"
+                >
                   <input
                     v-model="paymentMethod"
-                    class="form-check-input"
                     type="radio"
                     value="cash"
                     id="cash"
+                    class="visually-hidden"
                   />
-                  <label class="form-check-label" for="cash"
-                    >Cash on Delivery</label
-                  >
+                  <label class="payment-label" for="cash">
+                    <i class="bi bi-cash-stack me-2"></i>
+                    <span>Cash on Delivery</span>
+                  </label>
                 </div>
-                <div
-                  class="invalid-feedback"
-                  v-if="validationErrors.payment_method"
-                >
-                  {{ validationErrors.payment_method }}
-                </div>
+              </div>
+              <div
+                class="invalid-feedback"
+                v-if="validationErrors.payment_method"
+              >
+                {{ validationErrors.payment_method }}
               </div>
             </form>
           </div>
@@ -135,43 +152,57 @@
 
       <!-- Order Summary -->
       <div class="col-md-5">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title mb-4">Order Summary</h5>
-            <div
-              v-for="item in cartItems"
-              :key="item.product_uuid"
-              class="d-flex mb-3"
-            >
-              <img
-                :src="item.image || 'https://placehold.co/50'"
-                class="rounded me-3"
-                width="80"
-                alt="product"
-              />
-              <div>
-                <h6>{{ item.product_name }}</h6>
-                <div class="text-muted">
-                  Qty: {{ item.quantity }} × Rp{{ item.price }} = Rp{{
-                    item.quantity * item.price
-                  }}
+        <div class="card shadow-sm">
+          <div class="card-body p-4">
+            <h5 class="card-title mb-4">
+              <i class="bi bi-receipt me-2"></i>Order Summary
+            </h5>
+            <div class="order-items">
+              <div
+                v-for="item in cartItems"
+                :key="item.product_uuid"
+                class="order-item"
+              >
+                <img
+                  :src="item.image || 'https://placehold.co/50'"
+                  class="rounded me-3"
+                  width="80"
+                  alt="product"
+                />
+                <div class="order-item-details">
+                  <h6 class="mb-1">{{ item.product_name }}</h6>
+                  <div class="text-muted">
+                    Qty: {{ item.quantity }} ×
+                    <span class="price">Rp{{ formatPrice(item.price) }}</span>
+                  </div>
+                  <div class="item-total">
+                    Rp{{ formatPrice(item.quantity * item.price) }}
+                  </div>
                 </div>
               </div>
             </div>
-            <hr />
-            <div class="d-flex justify-content-between fw-bold">
-              <span>Total:</span>
-              <span>Rp{{ cartTotal }}</span>
+            <div class="total-section">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted">Subtotal:</span>
+                <span>Rp{{ formatPrice(cartTotal) }}</span>
+              </div>
+              <div
+                class="d-flex justify-content-between align-items-center fw-bold total"
+              >
+                <span>Total:</span>
+                <span class="total-amount">Rp{{ formatPrice(cartTotal) }}</span>
+              </div>
             </div>
             <button
-              class="btn btn-primary w-100 mt-4"
+              class="btn btn-primary btn-lg w-100 mt-4"
               @click="submitOrder"
               :disabled="processing"
             >
+              <i class="bi bi-lock me-2"></i>
               <span v-if="!processing">Place Order</span>
               <span v-else>
                 <span
-                  class="spinner-border spinner-border-sm"
+                  class="spinner-border spinner-border-sm me-2"
                   role="status"
                 ></span>
                 Processing...
@@ -287,9 +318,126 @@ const submitOrder = async () => {
     processing.value = false;
   }
 };
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat("id-ID").format(price);
+};
 </script>
 
 <style scoped>
+.checkout-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.card {
+  border: none;
+  border-radius: 15px;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.form-floating > .form-control:focus,
+.form-floating > .form-control:not(:placeholder-shown) {
+  padding-top: 1.625rem;
+  padding-bottom: 0.625rem;
+}
+
+.payment-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.payment-option {
+  position: relative;
+  border: 2px solid #dee2e6;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.payment-option.active {
+  border-color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+.payment-label {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  margin: 0;
+  width: 100%;
+}
+
+.order-items {
+  max-height: 400px;
+  overflow-y: auto;
+  margin: -1rem;
+  padding: 1rem;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.order-item-details {
+  flex: 1;
+}
+
+.item-total {
+  text-align: right;
+  color: #0d6efd;
+  font-weight: 500;
+}
+
+.total-section {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.total {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
+  font-size: 1.25rem;
+}
+
+.total-amount {
+  color: #0d6efd;
+  font-size: 1.5rem;
+}
+
+.price {
+  color: #198754;
+}
+
+.btn-primary {
+  padding: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Existing styles remain... */
+
 .success-checkmark {
   width: 80px;
   height: 80px;
@@ -355,5 +503,25 @@ const submitOrder = async () => {
   background-repeat: no-repeat;
   background-position: right calc(0.375em + 0.1875rem) center;
   background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+/* Animation classes */
+.animate__animated {
+  animation-duration: 0.5s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate__fadeIn {
+  animation-name: fadeIn;
 }
 </style>
