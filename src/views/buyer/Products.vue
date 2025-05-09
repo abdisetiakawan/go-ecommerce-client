@@ -138,6 +138,7 @@ import { useRouter } from "vue-router";
 import ProductList from "../../components/ProductList.vue";
 import CartSidebar from "../../components/CartSidebar.vue";
 import axiosInstance from "../../services/axios";
+import Swal from "sweetalert2";
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -289,12 +290,67 @@ const handleQuantityUpdate = ({ productUuid, quantity }) => {
   }
 };
 
-const removeFromCart = (product_uuid) => {
-  cartItems.value = cartItems.value.filter(
-    (item) => item.product_uuid !== product_uuid
-  );
-  if (cartItems.value.length === 0) {
-    currentStore.value = "";
+const removeFromCart = async (product_uuid) => {
+  try {
+    // Show confirmation dialog
+    const result = await Swal.fire({
+      title: "Remove Item?",
+      text: "Are you sure you want to remove this item from your cart?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, remove it",
+      cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+      // Remove item from cart
+      cartItems.value = cartItems.value.filter(
+        (item) => item.product_uuid !== product_uuid
+      );
+
+      // Reset store selection if cart becomes empty
+      if (cartItems.value.length === 0) {
+        currentStore.value = "";
+
+        // Show empty cart notification
+        await Swal.fire({
+          title: "Cart Empty",
+          text: "Your shopping cart is now empty",
+          icon: "info",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } else {
+        // Show success notification
+        await Swal.fire({
+          title: "Item Removed",
+          text: "Item has been removed from your cart",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+
+      // Reset product quantity in stores
+      stores.value.forEach((store) => {
+        const product = store.products.find(
+          (p) => p.product_uuid === product_uuid
+        );
+        if (product) {
+          product.quantity = 1; // Reset quantity to default
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error removing item from cart:", error);
+    Swal.fire({
+      title: "Error",
+      text: "Failed to remove item from cart",
+      icon: "error",
+      confirmButtonColor: "#dc3545",
+    });
   }
 };
 
