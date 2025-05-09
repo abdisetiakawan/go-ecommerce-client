@@ -19,62 +19,76 @@
 
   <!-- Main Content -->
   <div v-else class="container-lg py-4 animate__animated animate__fadeIn">
-    <!-- Header Section -->
     <div class="mb-4">
       <RouterLink to="/buyer/orders" class="btn btn-link text-decoration-none">
-        <i class="bi bi-arrow-left me-2"></i>Kembali ke Pesanan
+        <i class="bi bi-arrow-left me-2"></i>Back to Orders
       </RouterLink>
-      <div class="d-flex justify-content-between align-items-center mt-2">
-        <h1 class="h3 mb-0">Order #{{ orderData.order_uuid }}</h1>
+
+      <!-- Order Header -->
+      <div
+        class="d-flex justify-content-between align-items-center mt-3 bg-light p-4 rounded-3"
+      >
         <div>
-          <button
-            v-if="orderData.status === 'pending'"
-            class="btn btn-outline-danger me-2"
-            @click="showCancelModal = true"
-          >
-            Batalkan Pesanan
-          </button>
-          <button
-            v-if="orderData.status === 'pending'"
-            class="btn btn-outline-success"
-            @click="checkoutOrder"
-            :disabled="processingCheckout"
-          >
-            <span v-if="!processingCheckout">Checkout Now</span>
-            <span v-else>
-              <span
-                class="spinner-border spinner-border-sm"
-                role="status"
-              ></span>
-              Processing...
-            </span>
-          </button>
+          <span class="text-muted fs-6">Order ID</span>
+          <h2 class="mb-0 fw-bold">#{{ orderData.order_uuid }}</h2>
+          <p class="text-muted mb-0 mt-2">
+            <i class="bi bi-calendar3 me-2"></i>
+            {{ formatDate(orderData.created_at) }}
+          </p>
+        </div>
+        <div class="text-end">
+          <span :class="['status-pill', `status-${orderData.status}`]">
+            {{ formattedStatus }}
+          </span>
+          <div class="mt-3" v-if="orderData.status === 'pending'">
+            <button
+              class="btn btn-outline-danger btn-sm me-2"
+              @click="showCancelModal = true"
+            >
+              <i class="bi bi-x-circle me-1"></i>Cancel Order
+            </button>
+            <button
+              class="btn btn-primary btn-sm"
+              @click="checkoutOrder"
+              :disabled="processingCheckout"
+            >
+              <i class="bi bi-credit-card me-1"></i>
+              {{ processingCheckout ? "Processing..." : "Checkout Now" }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Order Content -->
     <div class="row g-4">
-      <!-- Order Items -->
+      <!-- Order Items Card -->
       <div class="col-md-8">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title mb-4">Item Pesanan</h5>
+        <div class="card shadow-sm">
+          <div class="card-header bg-white">
+            <h5 class="card-title mb-0">
+              <i class="bi bi-cart3 me-2"></i>Order Items
+            </h5>
+          </div>
+          <div class="card-body p-0">
             <div class="list-group list-group-flush">
               <div
                 v-for="item in orderData.items"
                 :key="item.order_item_uuid"
-                class="list-group-item d-flex align-items-center py-3"
+                class="list-group-item p-3"
               >
-                <img
-                  :src="item.image || 'https://placehold.co/100'"
-                  class="img-fluid rounded me-3"
-                  alt="Gambar Produk"
-                  style="width: 80px; height: 80px; object-fit: cover"
-                />
-                <div>
-                  <h6 class="mb-1">{{ item.product_name }}</h6>
-                  <small class="text-muted">Jumlah: {{ item.quantity }}</small>
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="item-image-placeholder">
+                      <i class="bi bi-box-seam"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-1">{{ item.product_name }}</h6>
+                    <span class="text-muted">
+                      <i class="bi bi-x me-1"></i>{{ item.quantity }} units
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -82,69 +96,82 @@
         </div>
       </div>
 
-      <!-- Order Summary -->
+      <!-- Order Summary Card -->
       <div class="col-md-4">
-        <div class="card">
+        <div class="card shadow-sm">
+          <div class="card-header bg-white">
+            <h5 class="card-title mb-0">
+              <i class="bi bi-info-circle me-2"></i>Order Summary
+            </h5>
+          </div>
           <div class="card-body">
-            <h5 class="card-title mb-4">Ringkasan Pesanan</h5>
-            <dl class="row mb-0">
-              <dt class="col-6">Status Pesanan:</dt>
-              <dd class="col-6 text-end">
-                <span :class="['badge', statusBadgeClass]">
-                  {{ formattedStatus }}
+            <ul class="list-unstyled mb-0">
+              <li
+                class="d-flex justify-content-between align-items-center mb-3"
+              >
+                <span class="text-muted">Payment Method</span>
+                <span class="badge bg-light text-dark">
+                  <i class="bi bi-cash me-1"></i>{{ paymentMethod }}
                 </span>
-              </dd>
+              </li>
 
-              <dt class="col-6">Metode Pembayaran:</dt>
-              <dd class="col-6 text-end">{{ paymentMethod }}</dd>
-
-              <dt class="col-12 mt-3">Alamat Pengiriman:</dt>
-              <dd class="col-12 mt-1">
-                <div class="text-muted whitespace-pre-line">
-                  {{ shippingAddress }}
+              <li class="mb-3">
+                <span class="text-muted d-block mb-2">Shipping Address</span>
+                <div class="p-3 bg-light rounded">
+                  <p class="mb-1 fw-medium">
+                    {{ orderData.shipping?.address }}
+                  </p>
+                  <p class="mb-0 text-muted small">
+                    {{ orderData.shipping?.city }},
+                    {{ orderData.shipping?.province }} <br />{{
+                      orderData.shipping?.postal_code
+                    }}
+                  </p>
                 </div>
-              </dd>
+              </li>
 
-              <div class="col-12 mt-4 pt-3 border-top">
-                <dt class="d-inline">Total Pembayaran:</dt>
-                <dd class="d-inline float-end fs-5 fw-bold text-success">
-                  Rp{{ formattedTotalPrice }}
-                </dd>
-              </div>
-            </dl>
+              <li class="pt-3 mt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="fw-bold">Total Amount</span>
+                  <span class="fs-5 fw-bold text-primary">
+                    Rp {{ formattedTotalPrice }}
+                  </span>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Cancel Order Modal -->
-    <div
-      v-if="showCancelModal"
-      class="modal d-block"
-      tabindex="-1"
-      style="background: rgba(0, 0, 0, 0.5)"
-    >
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Konfirmasi Pembatalan</h5>
-            <button
-              type="button"
-              class="btn-close"
-              @click="showCancelModal = false"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <p>Anda yakin ingin membatalkan pesanan ini?</p>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" @click="showCancelModal = false">
-              Tutup
-            </button>
-            <button class="btn btn-danger" @click="cancelOrder">
-              Batalkan Pesanan
-            </button>
-          </div>
+  <!-- Cancel Order Modal -->
+  <div
+    v-if="showCancelModal"
+    class="modal d-block"
+    tabindex="-1"
+    style="background: rgba(0, 0, 0, 0.5)"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Konfirmasi Pembatalan</h5>
+          <button
+            type="button"
+            class="btn-close"
+            @click="showCancelModal = false"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <p>Anda yakin ingin membatalkan pesanan ini?</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showCancelModal = false">
+            Tutup
+          </button>
+          <button class="btn btn-danger" @click="cancelOrder">
+            Batalkan Pesanan
+          </button>
         </div>
       </div>
     </div>
@@ -281,6 +308,17 @@ const checkoutOrder = async () => {
   }
 };
 
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 watch(
   () => route.params.orderUuid,
   (newVal) => {
@@ -312,5 +350,60 @@ watch(
 
 .animate__fadeIn {
   animation-name: fadeIn;
+}
+
+.status-pill {
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-processed {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+.status-completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-cancelled {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.item-image-placeholder {
+  width: 64px;
+  height: 64px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-image-placeholder i {
+  font-size: 1.5rem;
+  color: #6c757d;
+}
+
+.card {
+  border: none;
+  border-radius: 10px;
+}
+
+.card-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.badge {
+  padding: 0.5em 1em;
 }
 </style>
