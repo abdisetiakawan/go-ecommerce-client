@@ -2,32 +2,82 @@
   <div class="main-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h3 class="fw-bold">My Orders</h3>
-      <div class="d-flex gap-2">
-        <div class="col-md-3">
-          <select
-            class="form-select"
-            v-model="statusFilter"
-            @change="handleStatusChange"
-          >
-            <option value="">All Status</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="pending">Pending</option>
-            <option value="processed">Processed</option>
-            <option value="delivered">Delivered</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <select
-            class="form-select"
-            v-model="limit"
-            @change="handleLimitChange"
-          >
-            <option value="5">5 per page</option>
-            <option value="10">10 per page</option>
-            <option value="20">20 per page</option>
-          </select>
-        </div>
+      <div class="search-container">
+        <input
+          type="text"
+          class="form-control search-input"
+          v-model="searchQuery"
+          placeholder="Search orders..."
+        />
+        <i class="bi bi-search search-icon"></i>
       </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs nav-fill mb-4">
+      <li class="nav-item">
+        <a
+          class="nav-link"
+          :class="{ active: statusFilter === '' }"
+          @click.prevent="handleStatusChange('')"
+          href="#"
+        >
+          All Orders
+        </a>
+      </li>
+      <li class="nav-item">
+        <a
+          class="nav-link"
+          :class="{ active: statusFilter === 'pending' }"
+          @click.prevent="handleStatusChange('pending')"
+          href="#"
+        >
+          <i class="bi bi-clock-history me-1"></i>Pending
+        </a>
+      </li>
+      <li class="nav-item">
+        <a
+          class="nav-link"
+          :class="{ active: statusFilter === 'processed' }"
+          @click.prevent="handleStatusChange('processed')"
+          href="#"
+        >
+          <i class="bi bi-box-seam me-1"></i>Processed
+        </a>
+      </li>
+      <li class="nav-item">
+        <a
+          class="nav-link"
+          :class="{ active: statusFilter === 'delivered' }"
+          @click.prevent="handleStatusChange('delivered')"
+          href="#"
+        >
+          <i class="bi bi-check-circle me-1"></i>Delivered
+        </a>
+      </li>
+      <li class="nav-item">
+        <a
+          class="nav-link"
+          :class="{ active: statusFilter === 'cancelled' }"
+          @click.prevent="handleStatusChange('cancelled')"
+          href="#"
+        >
+          <i class="bi bi-x-circle me-1"></i>Cancelled
+        </a>
+      </li>
+    </ul>
+
+    <!-- Display per page selector -->
+    <div class="d-flex justify-content-end mb-3">
+      <select
+        class="form-select form-select-sm w-auto"
+        v-model="limit"
+        @change="handleLimitChange"
+      >
+        <option value="5">5 per page</option>
+        <option value="10">10 per page</option>
+        <option value="20">20 per page</option>
+      </select>
     </div>
 
     <!-- Loading Indicator -->
@@ -37,40 +87,55 @@
       </div>
     </div>
 
+    <!-- Empty State -->
+    <div v-else-if="!orders.length" class="empty-state">
+      <i class="bi bi-inbox display-1 text-muted"></i>
+      <h4 class="mt-3">No Orders Found</h4>
+      <p class="text-muted">
+        {{ getEmptyStateMessage() }}
+      </p>
+      <RouterLink to="/buyer/products" class="btn btn-primary">
+        Browse Products
+      </RouterLink>
+    </div>
+
     <!-- Order List -->
     <div v-else class="row g-4">
-      <div v-for="order in orders" :key="order.order_uuid" class="col-12">
+      <div
+        v-for="order in filteredOrders"
+        :key="order.order_uuid"
+        class="col-12"
+      >
         <div :class="['card', 'order-card', order.status]">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-start">
               <div class="w-75">
                 <div class="d-flex justify-content-between mb-2">
                   <h5 class="card-title">Order #{{ order.order_uuid }}</h5>
-                  <span :class="['badge', statusBadgeClass(order.status)]">{{
-                    order.status
-                  }}</span>
+                  <span :class="['badge', statusBadgeClass(order.status)]">
+                    {{ order.status }}
+                  </span>
                 </div>
                 <div class="d-flex gap-4 text-muted">
                   <div>
                     <i class="bi bi-clock-history me-1"></i>
-                    <span>{{ order.date }}</span>
+                    <span>{{ formatDate(order.date) }}</span>
                   </div>
                   <div>
                     <i class="bi bi-currency-dollar me-1"></i>
-                    <span>Total: Rp{{ order.total_price }}</span>
+                    <span>Total: Rp{{ formatPrice(order.total_price) }}</span>
                   </div>
                 </div>
               </div>
-              <div class="dropdown">
-                <RouterLink
-                  :to="{
-                    name: 'OrderDetail',
-                    params: { orderUuid: order.order_uuid },
-                  }"
-                  class="btn btn-primary"
-                  >View Details</RouterLink
-                >
-              </div>
+              <RouterLink
+                :to="{
+                  name: 'OrderDetail',
+                  params: { orderUuid: order.order_uuid },
+                }"
+                class="btn btn-outline-primary"
+              >
+                View Details
+              </RouterLink>
             </div>
           </div>
         </div>
@@ -85,8 +150,9 @@
             class="page-link"
             href="#"
             @click.prevent="changePage(currentPage - 1)"
-            >Previous</a
           >
+            <i class="bi bi-chevron-left"></i>
+          </a>
         </li>
         <li
           class="page-item"
@@ -94,14 +160,14 @@
           v-for="page in pageRange"
           :key="page"
         >
-          <a class="page-link" href="#" @click.prevent="changePage(page)">{{
-            page
-          }}</a>
+          <a class="page-link" href="#" @click.prevent="changePage(page)">
+            {{ page }}
+          </a>
         </li>
         <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-          <a class="page-link" @click.prevent="changePage(currentPage + 1)"
-            >Next</a
-          >
+          <a class="page-link" @click.prevent="changePage(currentPage + 1)">
+            <i class="bi bi-chevron-right"></i>
+          </a>
         </li>
       </ul>
     </nav>
@@ -122,6 +188,9 @@ const currentPage = ref(1);
 const limit = ref(10);
 const totalPages = ref(1);
 const isLoading = ref(false);
+
+// Add new ref for search
+const searchQuery = ref("");
 
 const route = useRoute();
 const router = useRouter();
@@ -192,13 +261,13 @@ const changePage = (page) => {
   });
 };
 
-const handleStatusChange = () => {
+const handleStatusChange = (status) => {
   router.push({
     name: "BuyerOrders",
     query: {
       ...route.query,
       page: 1,
-      status: statusFilter.value,
+      status: status,
     },
   });
 };
@@ -239,9 +308,123 @@ const statusBadgeClass = (status) => {
     "bg-success": status === "delivered",
   };
 };
+
+// Add computed property for filtered orders
+const filteredOrders = computed(() => {
+  if (!searchQuery.value) return orders.value;
+
+  const query = searchQuery.value.toLowerCase();
+  return orders.value.filter(
+    (order) =>
+      order.order_uuid.toLowerCase().includes(query) ||
+      order.status.toLowerCase().includes(query) ||
+      order.total_price.toString().includes(query)
+  );
+});
+
+// Add date formatter
+const formatDate = (date) => {
+  if (!date) return "";
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+// Add price formatter
+const formatPrice = (price) => {
+  return Number(price).toLocaleString("id-ID");
+};
+
+// Add empty state message helper
+const getEmptyStateMessage = () => {
+  if (statusFilter.value) {
+    return `No ${statusFilter.value} orders found`;
+  }
+  if (searchQuery.value) {
+    return "No orders match your search criteria";
+  }
+  return "You haven't placed any orders yet";
+};
 </script>
 
 <style scoped>
+/* Add new styles */
+.search-container {
+  position: relative;
+  width: 300px;
+}
+
+.search-input {
+  padding-left: 35px;
+  border-radius: 20px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.nav-tabs .nav-link {
+  color: #6c757d;
+  border: none;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.1);
+}
+
+.nav-tabs .nav-link.active {
+  color: #0d6efd;
+  border-bottom: 2px solid #0d6efd;
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.order-card {
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Status-specific card borders */
+.order-card.pending {
+  border-left: 4px solid #ffc107;
+}
+.order-card.processed {
+  border-left: 4px solid #0d6efd;
+}
+.order-card.delivered {
+  border-left: 4px solid #198754;
+}
+.order-card.cancelled {
+  border-left: 4px solid #dc3545;
+}
+
+/* Existing pagination styles */
 .pagination .page-item.active .page-link {
   background-color: #0d6efd;
   border-color: #0d6efd;
@@ -256,17 +439,5 @@ const statusBadgeClass = (status) => {
 .pagination .page-item.disabled .page-link {
   color: #6c757d;
   pointer-events: none;
-}
-
-.order-card {
-  transition: transform 0.2s;
-}
-
-.order-card:hover {
-  transform: translateY(-2px);
-}
-
-.bg-warning.text-dark {
-  color: var(--bs-dark) !important;
 }
 </style>
