@@ -48,11 +48,11 @@
       <li class="nav-item">
         <a
           class="nav-link"
-          :class="{ active: statusFilter === 'delivered' }"
-          @click.prevent="handleStatusChange('delivered')"
+          :class="{ active: statusFilter === 'completed' }"
+          @click.prevent="handleStatusChange('completed')"
           href="#"
         >
-          <i class="bi bi-check-circle me-1"></i>Delivered
+          <i class="bi bi-check-circle me-1"></i>Completed
         </a>
       </li>
       <li class="nav-item">
@@ -144,10 +144,10 @@
                 <!-- Add update status button for processed orders -->
                 <button
                   v-if="order.status === 'processed'"
-                  @click="updateOrderStatus(order.order_uuid, 'delivered')"
+                  @click="updateOrderStatus(order.order_uuid, 'completed')"
                   class="btn btn-outline-success me-2"
                 >
-                  Mark as Delivered
+                  Mark as Completed
                 </button>
                 <RouterLink
                   :to="{
@@ -400,7 +400,7 @@ const statusBadgeClass = (status) => {
   return {
     "bg-danger": status === "cancelled",
     "bg-warning text-dark": status === "pending",
-    "bg-info": status === "shipped",
+    "bg-info": status === "processed",
     "bg-success": status === "completed" || status === "delivered",
   };
 };
@@ -535,6 +535,9 @@ const ORDER_STATUS = {
 }
 .order-card.cancelled {
   border-left: 4px solid #dc3545;
+}
+.order-card.completed {
+  border-left: 4px solid #198754;
 }
 
 .pagination .page-item.active .page-link {
