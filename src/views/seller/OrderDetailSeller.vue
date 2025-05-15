@@ -151,43 +151,61 @@
         <div class="card">
           <div class="card-body">
             <h5 class="card-title mb-4">Order Timeline</h5>
-            <ul class="list-unstyled">
-              <li class="mb-3">
-                <div class="d-flex">
-                  <div class="me-3">
-                    <i class="bi bi-check-circle-fill text-success"></i>
-                  </div>
-                  <div>
-                    <h6 class="mb-0">Order Placed</h6>
-                    <small class="text-muted">{{
-                      formatDate(orderData.created_at)
-                    }}</small>
-                  </div>
+            <div class="timeline-wrapper">
+              <div class="timeline-item">
+                <div class="timeline-marker done">
+                  <i class="bi bi-cart-check-fill"></i>
                 </div>
-              </li>
-              <li class="mb-3">
-                <div class="d-flex">
-                  <div class="me-3">
-                    <i :class="['bi', shippedIconClass]"></i>
-                  </div>
-                  <div>
-                    <h6 class="mb-0">Order Shipped</h6>
-                    <small class="text-muted">{{ shippedDate }}</small>
-                  </div>
+                <div class="timeline-content">
+                  <h6 class="mb-0">Order Placed</h6>
+                  <small class="text-muted">{{
+                    formatDate(orderData.created_at)
+                  }}</small>
                 </div>
-              </li>
-              <li>
-                <div class="d-flex">
-                  <div class="me-3">
-                    <i :class="['bi', deliveredIconClass]"></i>
-                  </div>
-                  <div>
-                    <h6 class="mb-0">Order Completed</h6>
-                    <small class="text-muted">{{ deliveredDate }}</small>
-                  </div>
+              </div>
+
+              <div class="timeline-item">
+                <div
+                  :class="[
+                    'timeline-marker',
+                    { done: isShipped, current: isPending },
+                  ]"
+                >
+                  <i class="bi bi-box-seam-fill"></i>
                 </div>
-              </li>
-            </ul>
+                <div class="timeline-content">
+                  <h6 class="mb-0">Order Shipped</h6>
+                  <small
+                    :class="[
+                      'status-text',
+                      { 'text-primary': isShipped, 'text-muted': !isShipped },
+                    ]"
+                  >
+                    {{ shippedDate }}
+                  </small>
+                </div>
+              </div>
+
+              <div class="timeline-item">
+                <div :class="['timeline-marker', { done: isDelivered }]">
+                  <i class="bi bi-house-check-fill"></i>
+                </div>
+                <div class="timeline-content">
+                  <h6 class="mb-0">Order Delivered</h6>
+                  <small
+                    :class="[
+                      'status-text',
+                      {
+                        'text-success': isDelivered,
+                        'text-muted': !isDelivered,
+                      },
+                    ]"
+                  >
+                    {{ deliveredDate }}
+                  </small>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -307,6 +325,18 @@ const deliveredDate = computed(() => {
   return orderData.value.shipping?.status === "delivered"
     ? formatDate(orderData.value.shipping?.updated_at)
     : "Not yet delivered";
+});
+
+const isShipped = computed(() => {
+  return ["shipped", "delivered"].includes(orderData.value.shipping?.status);
+});
+
+const isDelivered = computed(() => {
+  return orderData.value.shipping?.status === "delivered";
+});
+
+const isPending = computed(() => {
+  return orderData.value.shipping?.status === "pending";
 });
 
 // Methods
@@ -668,6 +698,115 @@ onMounted(async () => {
   .product-image {
     width: 60px;
     height: 60px;
+  }
+}
+
+.timeline-wrapper {
+  position: relative;
+  padding: 1rem 0;
+}
+
+.timeline-wrapper::before {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e9ecef;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 50px;
+  margin-bottom: 1.5rem;
+  z-index: 1;
+}
+
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.timeline-marker i {
+  font-size: 1rem;
+  color: #6c757d;
+  transition: all 0.3s ease;
+}
+
+.timeline-marker.done {
+  border-color: #198754;
+  background: #198754;
+}
+
+.timeline-marker.done i {
+  color: #fff;
+}
+
+.timeline-marker.current {
+  border-color: #0d6efd;
+  background: #fff;
+}
+
+.timeline-marker.current i {
+  color: #0d6efd;
+}
+
+.timeline-content {
+  background: #fff;
+  padding: 0.5rem 0;
+}
+
+.timeline-content h6 {
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.status-text {
+  display: block;
+  font-size: 0.875rem;
+}
+
+.text-primary {
+  color: #0d6efd !important;
+}
+
+.text-success {
+  color: #198754 !important;
+}
+
+@media (max-width: 768px) {
+  .timeline-item {
+    padding-left: 45px;
+  }
+
+  .timeline-marker {
+    width: 32px;
+    height: 32px;
+  }
+
+  .timeline-marker i {
+    font-size: 0.875rem;
+  }
+
+  .timeline-wrapper::before {
+    left: 15px;
   }
 }
 </style>
