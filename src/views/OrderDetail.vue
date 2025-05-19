@@ -423,6 +423,11 @@ watch(
   color: #004085;
 }
 
+.status-shipped {
+  background-color: #e8dbff;
+  color: #6f42c1;
+}
+
 .status-completed {
   background-color: #d4edda;
   color: #155724;
