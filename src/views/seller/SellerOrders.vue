@@ -48,6 +48,16 @@
       <li class="nav-item">
         <a
           class="nav-link"
+          :class="{ active: statusFilter === 'shipped' }"
+          @click.prevent="handleStatusChange('shipped')"
+          href="#"
+        >
+          <i class="bi bi-truck me-1"></i>Shipped
+        </a>
+      </li>
+      <li class="nav-item">
+        <a
+          class="nav-link"
           :class="{ active: statusFilter === 'completed' }"
           @click.prevent="handleStatusChange('completed')"
           href="#"
@@ -133,30 +143,14 @@
                 </div>
               </div>
               <div class="d-flex">
-                <!-- Add update status button for pending orders -->
-                <button
-                  v-if="order.status === 'pending'"
-                  @click="updateOrderStatus(order.order_uuid, 'processed')"
-                  class="btn btn-outline-success me-2"
-                >
-                  Process Order
-                </button>
-                <!-- Add update status button for processed orders -->
-                <button
-                  v-if="order.status === 'processed'"
-                  @click="updateOrderStatus(order.order_uuid, 'completed')"
-                  class="btn btn-outline-success me-2"
-                >
-                  Mark as Completed
-                </button>
                 <RouterLink
                   :to="{
                     name: 'OrderDetailSeller',
                     params: { orderUuid: order.order_uuid },
                   }"
-                  class="btn btn-outline-primary"
+                  class="btn btn-primary rounded-pill"
                 >
-                  View Details
+                  <i class="bi bi-eye me-1"></i> View Details
                 </RouterLink>
               </div>
             </div>
@@ -270,81 +264,6 @@ const fetchOrders = async () => {
   }
 };
 
-const updateOrderStatus = async (orderUuid, newStatus) => {
-  try {
-    const statusText =
-      newStatus === "shipped" ? "Process Shipping" : "Mark as Delivered";
-
-    // Confirm with user before updating status
-    const result = await Swal.fire({
-      title: `${statusText}?`,
-      text: `Are you sure you want to update the shipping status to ${newStatus}?`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#198754",
-      cancelButtonColor: "#6c757d",
-      confirmButtonText: "Yes, update it!",
-    });
-
-    if (!result.isConfirmed) return;
-
-    // Show loading indicator
-    Swal.fire({
-      title: "Updating...",
-      text: "Please wait while we update the shipping status",
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
-
-    const response = await axiosInstance.patch(
-      `/seller/orders/${orderUuid}/shipping`,
-      {
-        status: newStatus,
-      }
-    );
-
-    if (response.data.status === "success") {
-      Swal.fire({
-        title: "Updated!",
-        text:
-          newStatus === "shipped"
-            ? "Order has been processed for shipping."
-            : "Order has been marked as delivered.",
-        icon: "success",
-        timer: 2000,
-        showConfirmButton: false,
-      });
-
-      // Refresh orders
-      fetchOrders();
-    }
-  } catch (error) {
-    console.error("Failed to update shipping status:", error);
-
-    let errorMessage = "Failed to update shipping status.";
-
-    // Handle specific error cases
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.response?.status === 409) {
-      errorMessage =
-        "Cannot update shipping status due to current order state.";
-    } else if (error.response?.status === 401) {
-      authStore.logout();
-      router.push("/login");
-      return;
-    }
-
-    Swal.fire({
-      title: "Error!",
-      text: errorMessage,
-      icon: "error",
-    });
-  }
-};
-
 const changePage = (page) => {
   if (page < 1 || page > totalPages.value) return;
 
@@ -398,10 +317,11 @@ watch(
 
 const statusBadgeClass = (status) => {
   return {
-    "bg-danger": status === "cancelled",
-    "bg-warning text-dark": status === "pending",
-    "bg-info": status === "processed",
-    "bg-success": status === "completed" || status === "delivered",
+    "bg-danger-soft text-danger": status === "cancelled",
+    "bg-warning-soft text-warning": status === "pending",
+    "bg-info-soft text-info": status === "processed",
+    "bg-purple-soft text-purple": status === "shipped",
+    "bg-success-soft text-success": status === "completed",
   };
 };
 
@@ -446,25 +366,17 @@ const getEmptyStateMessage = () => {
   }
   return "You don't have any orders yet";
 };
-
-// Update the status constants first
-const ORDER_STATUS = {
-  PENDING: "pending",
-  SHIPPED: "shipped",
-  DELIVERED: "delivered",
-  COMPLETED: "completed",
-};
 </script>
 
 <style scoped>
 .main-card {
   width: 100%;
   max-width: 1200px;
-  padding: 2rem;
+  padding: 2.5rem;
   margin: 2rem auto;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
 }
 
 .search-container {
@@ -473,16 +385,16 @@ const ORDER_STATUS = {
 }
 
 .search-input {
-  padding-left: 35px;
-  border-radius: 20px;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border-radius: 25px;
+  border: 1px solid #e0e0e0;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
 }
 
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #6c757d;
+.search-input:focus {
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+  border-color: #0d6efd;
 }
 
 .nav-tabs .nav-link {
@@ -506,71 +418,127 @@ const ORDER_STATUS = {
 
 .empty-state {
   text-align: center;
-  padding: 3rem;
+  padding: 4rem 2rem;
   background-color: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 16px;
+  border: 2px dashed #dee2e6;
+}
+
+.empty-state i {
+  color: #adb5bd;
+  margin-bottom: 1rem;
 }
 
 .order-card {
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #eaeaea;
 }
 
 .order-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .order-card.pending {
   border-left: 4px solid #ffc107;
 }
 .order-card.processed {
-  border-left: 4px solid #0d6efd;
+  border-left: 4px solid #0dcaf0;
 }
-.order-card.delivered {
+.order-card.shipped {
+  border-left: 4px solid #6f42c1;
+}
+.order-card.completed {
   border-left: 4px solid #198754;
 }
 .order-card.cancelled {
   border-left: 4px solid #dc3545;
 }
-.order-card.completed {
-  border-left: 4px solid #198754;
+
+/* Soft background colors for status badges */
+.bg-danger-soft {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.bg-warning-soft {
+  background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.bg-info-soft {
+  background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.bg-purple-soft {
+  background-color: rgba(111, 66, 193, 0.1) !important;
+}
+
+.bg-success-soft {
+  background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+/* Text colors for badges */
+.text-purple {
+  color: #6f42c1 !important;
+}
+
+/* Enhanced badges */
+.badge {
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  letter-spacing: 0.3px;
+}
+
+/* Enhanced nav tabs */
+.nav-tabs {
+  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 2rem;
+}
+
+.nav-tabs .nav-link {
+  font-weight: 500;
+  padding: 1rem 1.5rem;
+  margin-bottom: -2px;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link.active {
+  border-bottom: 2px solid #0d6efd;
+  background: rgba(13, 110, 253, 0.05);
+}
+
+/* Enhanced pagination */
+.pagination .page-link {
+  border-radius: 8px;
+  margin: 0 2px;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
 }
 
 .pagination .page-item.active .page-link {
   background-color: #0d6efd;
   border-color: #0d6efd;
-  color: white;
+  box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
 }
 
-.pagination .page-link {
-  color: #0d6efd;
-  cursor: pointer;
-}
-
-.pagination .page-item.disabled .page-link {
-  color: #6c757d;
-  pointer-events: none;
-}
-
+/* Responsive improvements */
 @media (max-width: 768px) {
-  .search-container {
-    width: 100%;
-    margin-top: 1rem;
+  .main-card {
+    padding: 1.5rem;
+    margin: 1rem;
+    border-radius: 12px;
   }
 
-  .d-flex.gap-4 {
-    flex-direction: column;
-    gap: 0.5rem !important;
+  .card-body {
+    padding: 1rem;
   }
 
-  .d-flex.gap-2 {
-    flex-direction: column;
-    width: 100%;
-    margin-top: 1rem;
+  .nav-tabs .nav-link {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
   }
 }
 </style>

@@ -20,8 +20,8 @@
           <i class="bi bi-arrow-left me-2"></i>Back to Orders
         </RouterLink>
         <h3 class="fw-bold mb-2">Order #{{ orderData.order_uuid }}</h3>
-        <span :class="['status-badge', `status-${orderData.shipping?.status}`]">
-          {{ orderData.shipping?.status?.toUpperCase() }}
+        <span :class="['status-badge', `status-${orderData.status}`]">
+          {{ orderData.status?.toUpperCase() }}
         </span>
       </div>
       <button
@@ -449,14 +449,24 @@ onMounted(async () => {
   color: #856404;
 }
 
-.status-shipped {
+.status-processed {
   background-color: #cce5ff;
   color: #004085;
 }
 
-.status-delivered {
+.status-shipped {
+  background-color: #e8dbff;
+  color: #6f42c1;
+}
+
+.status-completed {
   background-color: #d4edda;
   color: #155724;
+}
+
+.status-cancelled {
+  background-color: #f8d7da;
+  color: #721c24;
 }
 
 .btn-link {
