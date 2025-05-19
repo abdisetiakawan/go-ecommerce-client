@@ -48,11 +48,21 @@
       <li class="nav-item">
         <a
           class="nav-link"
-          :class="{ active: statusFilter === 'delivered' }"
-          @click.prevent="handleStatusChange('delivered')"
+          :class="{ active: statusFilter === 'shipped' }"
+          @click.prevent="handleStatusChange('shipped')"
           href="#"
         >
-          <i class="bi bi-check-circle me-1"></i>Delivered
+          <i class="bi bi-truck me-1"></i>Shipped
+        </a>
+      </li>
+      <li class="nav-item">
+        <a
+          class="nav-link"
+          :class="{ active: statusFilter === 'completed' }"
+          @click.prevent="handleStatusChange('completed')"
+          href="#"
+        >
+          <i class="bi bi-check-circle me-1"></i>Completed
         </a>
       </li>
       <li class="nav-item">
@@ -305,7 +315,8 @@ const statusBadgeClass = (status) => {
     "bg-danger": status === "cancelled",
     "bg-warning text-dark": status === "pending",
     "bg-primary": status === "processed",
-    "bg-success": status === "delivered",
+    "bg-purple": status === "shipped",
+    "bg-success": status === "completed",
   };
 };
 
@@ -417,11 +428,19 @@ const getEmptyStateMessage = () => {
 .order-card.processed {
   border-left: 4px solid #0d6efd;
 }
-.order-card.delivered {
+.order-card.shipped {
+  border-left: 4px solid #6f42c1;
+}
+.order-card.completed {
   border-left: 4px solid #198754;
 }
 .order-card.cancelled {
   border-left: 4px solid #dc3545;
+}
+
+.bg-purple {
+  background-color: #6f42c1 !important;
+  color: white;
 }
 
 /* Existing pagination styles */
