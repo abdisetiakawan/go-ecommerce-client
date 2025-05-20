@@ -318,6 +318,7 @@ import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "../stores/auth";
 import { useRouter } from "vue-router";
 import axiosInstance from "../services/axios";
+import Swal from "sweetalert2";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -390,14 +391,38 @@ const fetchProducts = async () => {
 };
 
 const deleteProduct = async (productUuid) => {
-  if (confirm("Are you sure you want to delete this product?")) {
+  const result = await Swal.fire({
+    title: "Delete Product",
+    text: "Are you sure you want to delete this product?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#dc3545",
+    cancelButtonColor: "#6c757d",
+    confirmButtonText: "Yes, delete it!",
+    cancelButtonText: "Cancel",
+  });
+
+  if (result.isConfirmed) {
     try {
       await axiosInstance.delete(`/seller/products/${productUuid}`);
       products.value = products.value.filter(
         (product) => product.product_uuid !== productUuid
       );
+
+      await Swal.fire({
+        title: "Deleted!",
+        text: "Product has been deleted successfully.",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false,
+      });
     } catch (error) {
       console.error("Failed to delete product:", error);
+      await Swal.fire({
+        title: "Error!",
+        text: error.response?.data?.message || "Failed to delete product",
+        icon: "error",
+      });
       if (error.response?.status === 401) {
         authStore.logout();
         router.push("/login");
@@ -408,6 +433,15 @@ const deleteProduct = async (productUuid) => {
 
 const handleAddProduct = async () => {
   try {
+    Swal.fire({
+      title: "Adding Product...",
+      text: "Please wait",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
     const response = await axiosInstance.post(
       "/seller/products",
       newProduct.value
@@ -421,8 +455,21 @@ const handleAddProduct = async () => {
       stock: 0,
       category: "Electronics",
     };
+
+    await Swal.fire({
+      title: "Success!",
+      text: "Product added successfully",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+    });
   } catch (error) {
     console.error("Failed to add product:", error);
+    await Swal.fire({
+      title: "Error!",
+      text: error.response?.data?.message || "Failed to add product",
+      icon: "error",
+    });
     if (error.response?.status === 401) {
       authStore.logout();
       router.push("/login");
