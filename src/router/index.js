@@ -10,7 +10,7 @@ const routes = [
   {
     path: "/",
     redirect: () => {
-      const userRole = localStorage.getItem("userRole");
+      const userRole = useAuthStore().userRole;
       if (userRole === "seller") return "/seller/dashboard";
       if (userRole === "buyer") return "/buyer/dashboard";
       return "/login";
