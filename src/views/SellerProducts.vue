@@ -1,5 +1,5 @@
 <template>
-  <div class="main-card">
+  <div v-if="hasStore" class="main-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h3 class="fw-bold">Product Management</h3>
       <button
@@ -311,6 +311,26 @@
       </div>
     </div>
   </div>
+  <div
+    v-else
+    class="d-flex flex-column align-items-center justify-content-center"
+    style="min-height: 60vh"
+  >
+    <i class="bi bi-shop text-primary" style="font-size: 4rem"></i>
+    <h3 class="mt-3 mb-2 text-secondary fw-bold">No Store Registered</h3>
+    <p
+      class="mb-4 text-muted text-center"
+      style="max-width: 400px; line-height: 1.5"
+    >
+      You need to register your store before you can add or manage products.
+    </p>
+    <button
+      class="btn btn-primary px-4 py-2"
+      @click="router.push('/seller/store')"
+    >
+      <i class="bi bi-plus-circle me-2"></i>Register Store Now
+    </button>
+  </div>
 </template>
 
 <script setup>
@@ -330,6 +350,8 @@ const searchQuery = ref("");
 const selectedCategory = ref("");
 const minPrice = ref(null);
 const maxPrice = ref(null);
+
+const hasStore = ref(true); // Tambahkan state ini
 
 const newProduct = ref({
   product_name: "",
@@ -372,6 +394,25 @@ const filteredProducts = computed(() => {
     );
   });
 });
+
+// Cek store seller sebelum fetch produk
+const checkStore = async () => {
+  try {
+    const response = await axiosInstance.get("/seller/store");
+    if (response.data.status === "success" && response.data.data) {
+      hasStore.value = true;
+    } else {
+      hasStore.value = false;
+    }
+  } catch (error) {
+    if (error.response?.status === 401) {
+      authStore.logout();
+      router.push("/login");
+    } else {
+      hasStore.value = false;
+    }
+  }
+};
 
 const fetchProducts = async () => {
   try {
@@ -502,7 +543,21 @@ const handleEditProduct = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await checkStore();
+  if (!hasStore.value) {
+    // Redirect ke halaman store jika belum punya store
+    await Swal.fire({
+      title: "No Store Registered",
+      text: "You must register your store before managing products.",
+      icon: "info",
+      confirmButtonText: "Go to Store Registration",
+      confirmButtonColor: "#6366f1",
+      allowOutsideClick: false,
+    });
+    router.push("/seller/store");
+    return;
+  }
   fetchProducts();
 });
 </script>
