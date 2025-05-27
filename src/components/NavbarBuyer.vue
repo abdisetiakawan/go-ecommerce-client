@@ -34,9 +34,9 @@
         <div class="profile-dropdown" ref="dropdownRef">
           <button class="profile-button" type="button" @click="toggleDropdown">
             <div class="avatar">
-              {{ authStore.userName?.charAt(0).toUpperCase() }}
+              {{ authStore.userName?.charAt(0).toUpperCase() || "U" }}
             </div>
-            <span class="profile-name">{{ authStore.userName }}</span>
+            <span class="profile-name">{{ authStore.userName || "User" }}</span>
             <i
               class="bi bi-chevron-down"
               :class="{ rotate: isDropdownOpen }"
@@ -46,7 +46,7 @@
           <ul class="custom-dropdown-menu" :class="{ show: isDropdownOpen }">
             <li class="custom-dropdown-header">
               <small class="text-muted">Signed in as</small>
-              <div class="fw-bold">{{ authStore.userName }}</div>
+              <div class="fw-bold">{{ authStore.userName || "User" }}</div>
             </li>
             <li class="divider"></li>
             <li>
