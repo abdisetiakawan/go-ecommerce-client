@@ -35,46 +35,43 @@
         </RouterLink>
 
         <!-- User Profile Dropdown -->
-        <div class="dropdown profile-dropdown">
-          <button
-            class="profile-button"
-            type="button"
-            id="userMenu"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
+        <div class="profile-dropdown" ref="dropdownRef">
+          <button class="profile-button" type="button" @click="toggleDropdown">
             <div class="avatar">
               {{ authStore.userName?.charAt(0).toUpperCase() || "U" }}
             </div>
             <span class="profile-name">{{ authStore.userName || "User" }}</span>
-            <i class="bi bi-chevron-down"></i>
+            <i
+              class="bi bi-chevron-down"
+              :class="{ rotate: isDropdownOpen }"
+            ></i>
           </button>
 
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li class="dropdown-header">
+          <ul class="custom-dropdown-menu" :class="{ show: isDropdownOpen }">
+            <li class="custom-dropdown-header">
               <small class="text-muted">Signed in as</small>
               <div class="fw-bold">{{ authStore.userName || "User" }}</div>
             </li>
-            <li><hr class="dropdown-divider" /></li>
+            <li class="divider"></li>
             <li>
-              <RouterLink class="dropdown-item" to="/profile">
+              <RouterLink class="custom-dropdown-item" to="/profile">
                 <i class="bi bi-person me-2"></i>My Profile
               </RouterLink>
             </li>
             <li>
-              <RouterLink class="dropdown-item" to="/seller/store">
+              <RouterLink class="custom-dropdown-item" to="/seller/store">
                 <i class="bi bi-shop me-2"></i>My Store
               </RouterLink>
             </li>
             <li>
-              <RouterLink class="dropdown-item" to="/seller/orders">
+              <RouterLink class="custom-dropdown-item" to="/seller/orders">
                 <i class="bi bi-clock-history me-2"></i>Order History
               </RouterLink>
             </li>
-            <li><hr class="dropdown-divider" /></li>
+            <li class="divider"></li>
             <li>
               <a
-                class="dropdown-item text-danger"
+                class="custom-dropdown-item danger"
                 @click.prevent="handleLogout"
               >
                 <i class="bi bi-box-arrow-right me-2"></i>Logout
@@ -90,14 +87,33 @@
 <script setup>
 import { RouterLink, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
-import { onMounted } from "vue";
+import { onMounted, ref, onBeforeUnmount } from "vue";
 import Swal from "sweetalert2";
 
 const authStore = useAuthStore();
 const router = useRouter();
+const isDropdownOpen = ref(false);
+const dropdownRef = ref(null);
+
+const toggleDropdown = () => {
+  isDropdownOpen.value = !isDropdownOpen.value;
+};
+
+const closeDropdown = (event) => {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+    isDropdownOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("click", closeDropdown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("click", closeDropdown);
+});
 
 const handleLogout = async () => {
-  // Add confirmation using SweetAlert2
   const result = await Swal.fire({
     title: "Logout",
     text: "Are you sure you want to logout?",
@@ -114,14 +130,6 @@ const handleLogout = async () => {
     router.push("/login");
   }
 };
-
-onMounted(() => {
-  // Initialize Bootstrap dropdown
-  const dropdownElementList = document.querySelectorAll(".dropdown-toggle");
-  const dropdownList = [...dropdownElementList].map(
-    (dropdownToggleEl) => new bootstrap.Dropdown(dropdownToggleEl)
-  );
-});
 </script>
 
 <style scoped>
@@ -237,38 +245,71 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.dropdown-menu {
-  margin-top: 0.5rem;
+.custom-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background-color: white;
+  margin: 0;
   padding: 0.5rem;
-  border: none;
+  list-style: none;
+  border-radius: 12px;
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border-radius: 12px;
   min-width: 220px;
-}
-
-.dropdown-header {
-  padding: 0.5rem 1rem;
-}
-
-.dropdown-item {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
   transition: all 0.2s ease;
 }
 
-.dropdown-item:hover {
+.custom-dropdown-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.custom-dropdown-header {
+  padding: 0.5rem 1rem;
+}
+
+.divider {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 0.5rem 0;
+}
+
+.custom-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  color: #4b5563;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.custom-dropdown-item:hover {
   background-color: #eff6ff;
   color: #2563eb;
 }
 
-.dropdown-item.text-danger:hover {
-  background-color: #fef2f2;
+.custom-dropdown-item.danger {
   color: #dc2626;
+}
+
+.custom-dropdown-item.danger:hover {
+  background-color: #fef2f2;
+}
+
+.bi-chevron-down {
+  transition: transform 0.2s ease;
+}
+
+.bi-chevron-down.rotate {
+  transform: rotate(180deg);
 }
 
 @media (max-width: 768px) {
